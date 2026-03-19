@@ -627,12 +627,22 @@
           body: formData
         });
 
+        const data = await res.json().catch(() => null);
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: 'Upload failed' }));
-          throw new Error(errData.error || 'Upload failed');
+          throw new Error((data && data.error) || 'Upload failed');
         }
 
         closeModal();
+
+        // Show indexing feedback
+        if (data && data.indexed_chars !== undefined) {
+          if (data.indexed_chars > 0) {
+            console.log(`Document indexed: ${data.indexed_chars} characters extracted for search.`);
+          } else {
+            alert('Document uploaded, but no searchable text could be extracted. The file may be scanned/image-based or in an unsupported format. You can still download it.');
+          }
+        }
+
         loadDocs();
       } catch (err) {
         alert('Upload failed: ' + err.message);

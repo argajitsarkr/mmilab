@@ -94,15 +94,18 @@ function initDB() {
   try { db.exec('ALTER TABLE documents ADD COLUMN project_id INTEGER REFERENCES projects(id)'); } catch(e) { /* column already exists */ }
   try { db.exec('ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT ""'); } catch(e) { /* column already exists */ }
 
+  // ── Migrations table ──
+  db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)");
+
   // ── One-time: reset all passwords to stronger default and force change ──
-  const migrationKey = 'pw_reset_v2';
-  const migrationDone = (() => { try { db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)"); return db.prepare("SELECT key FROM _migrations WHERE key = ?").get(migrationKey); } catch(e) { return null; } })();
+  const migrationKey = 'pw_reset_v3';
+  const migrationDone = db.prepare("SELECT key FROM _migrations WHERE key = ?").get(migrationKey);
   if (!migrationDone) {
-    console.log('Resetting all user passwords to stronger default...');
+    console.log('MIGRATION: Resetting ALL user passwords to MMI@Tripura2026# ...');
     const strongHash = bcrypt.hashSync('MMI@Tripura2026#', 10);
-    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1').run(strongHash);
+    const changes = db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1').run(strongHash);
     db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(migrationKey);
-    console.log('All passwords reset. Users will be forced to change on next login.');
+    console.log(`MIGRATION DONE: ${changes.changes} users reset. They will be forced to change password on next login.`);
   }
 
   // ── Seed Users if empty ──
