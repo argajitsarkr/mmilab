@@ -2,7 +2,7 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'mmilab.db');
+const DB_PATH = path.join(__dirname, '..', 'db', 'mmilab.db');
 
 function initDB() {
   const db = new Database(DB_PATH);
@@ -93,7 +93,7 @@ function initDB() {
   try { db.exec('ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0'); } catch(e) { /* column already exists */ }
 
   // ── One-time: reset all passwords to stronger default and force change ──
-  const migrationKey = 'pw_reset_v1';
+  const migrationKey = 'pw_reset_v2';
   const migrationDone = (() => { try { db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)"); return db.prepare("SELECT key FROM _migrations WHERE key = ?").get(migrationKey); } catch(e) { return null; } })();
   if (!migrationDone) {
     console.log('Resetting all user passwords to stronger default...');

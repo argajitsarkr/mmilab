@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDB } = require('./db/init');
+const { initDB } = require('./lib/init');
 
 const app = express();
 const PORT = process.env.PORT || 3500;
