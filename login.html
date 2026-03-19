@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scholar Login — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .login-page {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 24px; background: var(--color-dark); position: relative; overflow: hidden;
+        }
+        .login-page::before { content: ''; position: absolute; top: 50%; left: 50%; width: 600px; height: 600px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, var(--brand-orange-glow) 0%, transparent 70%); }
+        .login-card { width: 100%; max-width: 440px; border: var(--border-dark); padding: 48px; background: var(--color-dark-surface); position: relative; z-index: 1; }
+        .login-logo { text-align: center; margin-bottom: 40px; }
+        .login-logo img { height: 48px; }
+        .login-label { display: block; margin-bottom: 8px; margin-left: 2px; color: var(--color-text-muted-dark); }
+        .login-input { width: 100%; border: var(--border-dark); padding: 14px 16px; font-family: var(--font-body); font-size: 0.95rem; margin-bottom: 20px; background: var(--color-dark); color: var(--color-text-on-dark); transition: var(--transition); outline: none; }
+        .login-input::placeholder { color: var(--color-text-muted-dark); }
+        .login-input:focus { border-color: var(--brand-orange); box-shadow: 0 0 0 3px var(--brand-orange-glow); }
+        .login-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border: 1px solid var(--brand-orange); background: var(--brand-orange); color: white; cursor: pointer; font-family: var(--font-body); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; transition: var(--transition); }
+        .login-btn:hover { background: var(--brand-orange-light); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .login-back { display: block; text-align: center; margin-top: 24px; color: var(--color-text-muted-dark); transition: var(--transition); }
+        .login-back:hover { color: var(--brand-orange); }
+        .login-error { background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #FCA5A5; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; display: none; }
+        .login-info { color: var(--color-text-muted-dark); font-size: 0.75rem; text-align: center; margin-top: 24px; line-height: 1.6; border-top: var(--border-dark); padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-logo">
+                <a href="index.html"><img src="assets/logo.png" alt="MMI Lab"></a>
+                <div style="height: 12px;"></div>
+                <div class="text-tag-s" style="color: var(--color-text-muted-dark);">Lab Management System</div>
+            </div>
+            <div class="login-error" id="loginError"></div>
+            <form id="loginForm">
+                <label class="text-tag-s login-label">Email</label>
+                <input type="email" class="login-input" id="loginEmail" placeholder="name@mmilab.local" required>
+                <label class="text-tag-s login-label">Password</label>
+                <input type="password" class="login-input" id="loginPassword" placeholder="••••••••" required>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M1.5 12H21M13 3.5L21.5 12L13 20.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            </form>
+            <a href="index.html" class="login-back text-tag-s">← Return to Public Site</a>
+            <div class="login-info">
+                Site designed by Argajit Sarkar
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        // Check if already logged in
+        const token = localStorage.getItem('mmilab_token');
+        if (token) {
+            window.location.href = 'dashboard.html';
+            return;
+        }
+
+        const form = document.getElementById('loginForm');
+        const errorEl = document.getElementById('loginError');
+        const btn = document.getElementById('loginBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                localStorage.setItem('mmilab_token', data.token);
+                localStorage.setItem('mmilab_user', JSON.stringify(data.user));
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = 'Sign In <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M1.5 12H21M13 3.5L21.5 12L13 20.5" stroke="currentColor" stroke-width="1.5"/></svg>';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

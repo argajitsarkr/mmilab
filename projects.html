@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ── Project Entries ── */
+        .project-list { margin-top: 40px; }
+        .project-entry { border: var(--border-light); display: grid; grid-template-columns: 56px 1fr; margin-top: -1px; background: white; transition: var(--transition); }
+        .project-entry:hover { border-color: var(--brand-orange); z-index: 1; position: relative; }
+        .project-num-cell { padding: 24px 0; display: flex; align-items: flex-start; justify-content: center; border-right: var(--border-light); color: var(--color-text-secondary); font-family: var(--font-display); font-size: 1.1rem; }
+        .project-body { padding: 24px 28px; }
+        .project-title { font-size: 1.1rem; font-weight: 500; line-height: 1.4; margin-bottom: 12px; color: var(--color-text); }
+        
+        .project-details { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+        .project-detail-pill { display: inline-flex; flex-direction: column; background: var(--color-warm-surface); padding: 8px 12px; border-radius: 4px; border: var(--border-light); }
+        .project-detail-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; margin-bottom: 2px; }
+        .project-detail-value { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
+        
+        .project-reference { font-size: 0.85rem; line-height: 1.5; color: var(--color-text-secondary); border-top: 1px dashed var(--color-warm-border); padding-top: 12px; }
+        .project-reference b { color: var(--color-text); font-weight: 600; }
+
+        @media (max-width: 767px) {
+            .project-entry { grid-template-columns: 1fr; }
+            .project-num-cell { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav"><div class="container nav-inner"><a href="index.html" class="nav-logo"><img src="assets/logo.png" alt="MMI Lab"></a><button class="nav-toggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 12 12" fill="none"><path d="M0.75 3H11.25" stroke="currentColor"/><path d="M0.75 6H11.25" stroke="currentColor"/><path d="M0.75 9H11.25" stroke="currentColor"/></svg></button><div class="nav-links"><a href="index.html" class="nav-link text-tag-s">Home</a><a href="research.html" class="nav-link text-tag-s">Research</a><a href="team.html" class="nav-link text-tag-s">Our Team</a><a href="publications.html" class="nav-link text-tag-s">Publications</a><a href="projects.html" class="nav-link text-tag-s active">Projects</a><a href="gallery.html" class="nav-link text-tag-s">Gallery</a><a href="login.html" class="nav-link text-tag-s">Scholar Login</a></div></div></nav>
+    <div class="spacer-nav"></div>
+
+    <!-- ═══ HERO ═══ -->
+    <section class="hero-dark" style="padding: 80px 0 60px;">
+        <div class="container" style="position: relative; z-index: 1;">
+            <div class="accent-bar" style="margin-bottom: 24px;"></div>
+            <h1 class="text-display">Projects</h1>
+            <div style="height: 24px;"></div>
+            <p class="text-paragraph-l" style="max-width: 600px;">Experience as Investigator — Completed and Ongoing Projects supported by diverse funding agencies.</p>
+        </div>
+    </section>
+
+    <!-- ═══ PROJECTS LIST ═══ -->
+    <section class="section-warm" style="padding-top: 40px; padding-bottom: 80px;">
+        <div class="container">
+            <h2 style="margin-bottom: 20px;">Completed & Ongoing Projects</h2>
+            <div class="project-list" id="projectList">
+                <!-- Javascript will inject entries here -->
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
+
+    <script>
+    const PROJECTS_DATA = [
+        {
+            title: "Synergistic Tuberculosis Treatment: Antibiotics and Biofilm Inhibiting Natural Flavones.",
+            role: "PI",
+            fundingAgency: "DBT",
+            amount: "₹ 45,00,000",
+            reference: "Under review"
+        },
+        {
+            title: "TLR-Mediated Genomic Instability in Chronic Tuberculosis: Host Pathogen Interactions.",
+            role: "PI",
+            fundingAgency: "DBT",
+            amount: "₹ 37,00,000",
+            reference: "Ghosh C, Sarkar A, Anuja K, et al. Free radical stress induces DNA damage response in RAW264.7 macrophages during Mycobacterium smegmatis infection. <em>Arch Microbiol.</em> 2019;201(4):487-498. doi:10.1007/s00203-018-1587-y"
+        },
+        {
+            title: "IL-18 and TNF-α Modulate OPG in Arthritis and Osteoporosis.",
+            role: "PI",
+            fundingAgency: "ICMR",
+            amount: "₹ 20,00,000",
+            reference: "Acharjee S, Bhattacharjee S. IL-18 and TNF-alpha modulate the OPG/RANKL ratio and induce bone resorption in subjects with rheumatoid arthritis: A correlative study. <em>Eur J Immunol.</em> 2019;49:942. Hoboken, NJ, USA: Wiley."
+        },
+        {
+            title: "Dectin-1 and TLRs Mediate Beta Glucan's Immunomodulation in Leishmaniasis Model.",
+            role: "PI",
+            fundingAgency: "ICMR",
+            amount: "₹ 33,00,000",
+            reference: "Patidar A, Mahanty T, Raybarman C, Sarode AY, Basak S, Saha B, Bhattacharjee S. Barley beta-glucan and zymosan induce Dectin-1 and Toll-like receptor 2 co localization and anti-leishmanial immune response in Leishmania donovani-infected BALB/c mice. <em>Scand J Immunol.</em> 2020;92(6):e12952. doi:10.1111/sji.12952"
+        },
+        {
+            title: "Spatio-temporal Regulation of Toll-Like Receptors in Leishmania Infection Dynamics.",
+            role: "PI",
+            fundingAgency: "SERB DST",
+            amount: "₹ 63,00,000",
+            reference: "Shukla D, Patidar A, Sarma U, Chauhan P, Pandey SP, Chandel HS, Bodhale N, Ghosh SK, Guzman CA, Ebensen T, Silvestre R, Sarkar A, Saha B, Bhattacharjee S. Interdependencies between Toll-like receptors in Leishmania infection. <em>Immunology.</em> 2021;164(1):173-189."
+        },
+        {
+            title: "Integrating Gut Microbiome, Hormonal Profiles, and Lifestyle Factors for AI-Driven Metabolic Risk Prediction in Adolescents from Tripura, Northeast India with Adipocyte Validation",
+            role: "PI",
+            fundingAgency: "ICMR",
+            amount: "₹ 1,26,00,000 (1.26 Cr)",
+            reference: "Ongoing"
+        }
+    ];
+
+    const projectList = document.getElementById('projectList');
+    projectList.innerHTML = PROJECTS_DATA.map((p, i) => `
+        <div class="project-entry">
+            <div class="project-num-cell">${i + 1}</div>
+            <div class="project-body">
+                <div class="project-title">${p.title}</div>
+                <div class="project-details">
+                    <div class="project-detail-pill">
+                        <span class="project-detail-label">Role</span>
+                        <span class="project-detail-value">${p.role}</span>
+                    </div>
+                    <div class="project-detail-pill">
+                        <span class="project-detail-label">Funding Agency</span>
+                        <span class="project-detail-value">${p.fundingAgency}</span>
+                    </div>
+                    <div class="project-detail-pill">
+                        <span class="project-detail-label">Amount</span>
+                        <span class="project-detail-value">${p.amount}</span>
+                    </div>
+                </div>
+                <div class="project-reference">
+                    <b>Reference:</b> ${p.reference}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    </script>
+    <script src="js/main.js"></script>
+</body>
+</html>
+

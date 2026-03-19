@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publications — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ── Stats Bar ── */
+        .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); }
+        .stat-cell { border: var(--border-light); padding: 32px; text-align: center; background: white; margin-left: -1px; }
+        .stat-cell:first-child { margin-left: 0; }
+        .stat-big { font-family: var(--font-display); font-size: 3rem; font-weight: 400; color: var(--brand-orange); line-height: 1; letter-spacing: -0.04em; }
+        .stat-caption { margin-top: 8px; color: var(--color-text-secondary); }
+
+        /* ── Tab Navigation ── */
+        .pub-tabs { display: flex; border-bottom: 2px solid var(--color-warm-border); margin-bottom: 0; gap: 0; overflow-x: auto; }
+        .pub-tab {
+            padding: 16px 28px; cursor: pointer; border: none; background: none;
+            font-family: var(--font-body); font-weight: 600; font-size: 0.75rem;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--color-text-secondary); transition: var(--transition);
+            border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap;
+        }
+        .pub-tab:hover { color: var(--color-text); }
+        .pub-tab.active { color: var(--brand-orange); border-bottom-color: var(--brand-orange); }
+        .pub-tab .tab-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 22px; height: 22px; border-radius: 11px; padding: 0 6px;
+            background: var(--color-warm-surface); font-size: 0.65rem; font-weight: 700;
+            margin-left: 8px; letter-spacing: 0;
+        }
+        .pub-tab.active .tab-count { background: var(--brand-orange-glow); color: var(--brand-orange); }
+
+        /* ── Publication Entries ── */
+        .pub-list { display: none; }
+        .pub-list.active { display: block; }
+        .pub-entry { border: var(--border-light); display: grid; grid-template-columns: 56px 1fr; margin-top: -1px; background: white; transition: var(--transition); }
+        .pub-entry:hover { border-color: var(--brand-orange); z-index: 1; position: relative; }
+        .pub-num-cell { padding: 24px 0; display: flex; align-items: flex-start; justify-content: center; border-right: var(--border-light); color: var(--color-text-secondary); font-family: var(--font-display); font-size: 1.1rem; }
+        .pub-body { padding: 24px 28px; }
+        .pub-title { font-size: 1rem; font-weight: 500; line-height: 1.5; margin-bottom: 6px; color: var(--color-text); }
+        .pub-authors { color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 10px; line-height: 1.5; }
+        .pub-authors b { color: var(--color-text); }
+        .pub-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: var(--border-light); }
+        .pub-journal { font-weight: 500; font-size: 0.85rem; color: var(--color-text-secondary); font-style: italic; }
+        .pub-year-badge { display: inline-block; padding: 3px 10px; background: var(--color-warm-surface); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--color-text-secondary); border-radius: 3px; }
+        .doi-link { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-orange); font-weight: 700; font-size: 0.7rem; padding: 5px 12px; border: 1px solid var(--brand-orange); transition: var(--transition); letter-spacing: 0.06em; text-transform: uppercase; }
+        .doi-link:hover { background: var(--brand-orange); color: white; }
+
+        /* ── Patent Entries ── */
+        .patent-entry { border: var(--border-light); margin-top: -1px; background: white; padding: 28px; transition: var(--transition); display: grid; grid-template-columns: 56px 1fr; }
+        .patent-entry:hover { border-color: var(--brand-orange); }
+        .patent-title { font-size: 1rem; font-weight: 500; line-height: 1.5; margin-bottom: 12px; }
+        .patent-details { display: flex; flex-wrap: wrap; gap: 16px; }
+        .patent-detail { font-size: 0.85rem; color: var(--color-text-secondary); }
+        .patent-detail strong { color: var(--color-text); }
+        .patent-status { display: inline-block; padding: 3px 10px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 3px; }
+        .patent-status.granted { background: rgba(43, 168, 80, 0.12); color: #2BA850; }
+        .patent-status.filed { background: rgba(43, 90, 209, 0.12); color: #2B5AD1; }
+
+        /* ── Conference Entries ── */
+        .conf-entry { border: var(--border-light); margin-top: -1px; background: white; padding: 28px; transition: var(--transition); display: grid; grid-template-columns: 56px 1fr; }
+        .conf-entry:hover { border-color: var(--brand-orange); }
+        .conf-title { font-size: 1rem; font-weight: 500; line-height: 1.5; margin-bottom: 8px; }
+        .conf-venue { font-size: 0.9rem; color: var(--color-text-secondary); font-style: italic; margin-bottom: 8px; }
+        .conf-type-badge { display: inline-block; padding: 3px 10px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 3px; background: var(--brand-orange-glow); color: var(--brand-orange); }
+
+        /* ── Section count header ── */
+        .section-count-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 16px; }
+        .section-count-text { font-family: var(--font-display); font-size: 1.5rem; color: var(--brand-orange); }
+
+        @media (max-width: 767px) {
+            .stats-bar { grid-template-columns: repeat(3, 1fr); }
+            .stat-cell:nth-child(4), .stat-cell:nth-child(5) { margin-top: -1px; }
+            .pub-entry, .patent-entry, .conf-entry { grid-template-columns: 1fr; }
+            .pub-num-cell { display: none; }
+            .pub-tabs { gap: 0; }
+            .pub-tab { padding: 12px 16px; font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav"><div class="container nav-inner"><a href="index.html" class="nav-logo"><img src="assets/logo.png" alt="MMI Lab"></a><button class="nav-toggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 12 12" fill="none"><path d="M0.75 3H11.25" stroke="currentColor"/><path d="M0.75 6H11.25" stroke="currentColor"/><path d="M0.75 9H11.25" stroke="currentColor"/></svg></button><div class="nav-links"><a href="index.html" class="nav-link text-tag-s">Home</a><a href="research.html" class="nav-link text-tag-s">Research</a><a href="team.html" class="nav-link text-tag-s">Our Team</a><a href="publications.html" class="nav-link text-tag-s active">Publications</a><a href="projects.html" class="nav-link text-tag-s">Projects</a><a href="gallery.html" class="nav-link text-tag-s">Gallery</a><a href="login.html" class="nav-link text-tag-s">Scholar Login</a></div></div></nav>
+    <div class="spacer-nav"></div>
+
+    <!-- ═══ HERO ═══ -->
+    <section class="hero-dark" style="padding: 80px 0 60px;">
+        <div class="container" style="position: relative; z-index: 1;">
+            <div class="accent-bar" style="margin-bottom: 24px;"></div>
+            <h1 class="text-display">Publications</h1>
+            <div style="height: 24px;"></div>
+            <p class="text-paragraph-l" style="max-width: 600px;">A comprehensive record of our peer-reviewed contributions, patents, book chapters, and conference presentations spanning two decades of research.</p>
+        </div>
+    </section>
+
+    <!-- ═══ STATS BAR ═══ -->
+    <section class="section-surface" style="padding: 0;">
+        <div class="container">
+            <div class="stats-bar">
+                <div class="stat-cell"><div class="stat-big">91</div><div class="stat-caption text-tag-s">Total Publications</div></div>
+                <div class="stat-cell"><div class="stat-big">72</div><div class="stat-caption text-tag-s">Research Papers</div></div>
+                <div class="stat-cell"><div class="stat-big">10</div><div class="stat-caption text-tag-s">Review Papers</div></div>
+                <div class="stat-cell"><div class="stat-big">9</div><div class="stat-caption text-tag-s">Book Chapters</div></div>
+                <div class="stat-cell"><div class="stat-big">5</div><div class="stat-caption text-tag-s">Patents</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ TABBED PUBLICATIONS ═══ -->
+    <section class="section-warm" style="padding-top: 40px;">
+        <div class="container">
+            <div class="pub-tabs">
+                <button class="pub-tab active" data-tab="research">Research Papers<span class="tab-count">72</span></button>
+                <button class="pub-tab" data-tab="reviews">Review Papers<span class="tab-count">10</span></button>
+                <button class="pub-tab" data-tab="bookChapters">Book Chapters<span class="tab-count">9</span></button>
+                <button class="pub-tab" data-tab="patents">Patents<span class="tab-count">5</span></button>
+                <button class="pub-tab" data-tab="conferences">Conferences<span class="tab-count">5</span></button>
+            </div>
+            <div style="height: 24px;"></div>
+
+            <div id="pub-research" class="pub-list active"></div>
+            <div id="pub-reviews" class="pub-list"></div>
+            <div id="pub-bookChapters" class="pub-list"></div>
+            <div id="pub-patents" class="pub-list"></div>
+            <div id="pub-conferences" class="pub-list"></div>
+        </div>
+    </section>
+
+    <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
+
+    <script src="js/publications-data.js"></script>
+    <script>
+    (function() {
+        function renderPubEntry(pub, idx) {
+            const doiHtml = pub.doi ? `<a href="${pub.doi}" target="_blank" class="doi-link">DOI →</a>` : '';
+            return `<div class="pub-entry">
+                <div class="pub-num-cell">${idx}</div>
+                <div class="pub-body">
+                    <div class="pub-title">${pub.title}</div>
+                    <div class="pub-authors">${pub.authors}</div>
+                    <div class="pub-meta">
+                        <div class="pub-journal">${pub.journal}</div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <span class="pub-year-badge">${pub.year}</span>
+                            ${doiHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderPatent(p, idx) {
+            const statusClass = p.status === 'Granted' ? 'granted' : 'filed';
+            const grantedHtml = p.granted ? `<span class="patent-detail"><strong>Granted:</strong> ${p.granted}</span>` : '';
+            const sponsorHtml = p.sponsor ? `<span class="patent-detail"><strong>Sponsor:</strong> ${p.sponsor}</span>` : '';
+            return `<div class="patent-entry">
+                <div class="pub-num-cell">${idx}</div>
+                <div>
+                    <div class="patent-title">${p.title}</div>
+                    <div class="patent-details">
+                        <span class="patent-status ${statusClass}">${p.status}</span>
+                        ${p.scope ? `<span class="patent-detail"><strong>Scope:</strong> ${p.scope}</span>` : ''}
+                        <span class="patent-detail"><strong>Filed:</strong> ${p.filed}</span>
+                        ${grantedHtml}
+                        ${p.refNo ? `<span class="patent-detail"><strong>Ref:</strong> ${p.refNo}</span>` : ''}
+                        ${sponsorHtml}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderConf(c, idx) {
+            return `<div class="conf-entry">
+                <div class="pub-num-cell">${idx}</div>
+                <div>
+                    <div class="conf-title">${c.title}</div>
+                    <div class="conf-venue">${c.venue}</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span class="pub-year-badge">${c.year}</span>
+                        <span class="conf-type-badge">${c.type}</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        // Render research papers
+        const researchHtml = PUBLICATIONS_DATA.research.map((p, i) => renderPubEntry(p, i + 1)).join('');
+        document.getElementById('pub-research').innerHTML = researchHtml;
+
+        // Render review papers
+        const reviewsHtml = PUBLICATIONS_DATA.reviews.map((p, i) => renderPubEntry(p, i + 1)).join('');
+        document.getElementById('pub-reviews').innerHTML = reviewsHtml;
+
+        // Render book chapters
+        const chaptersHtml = PUBLICATIONS_DATA.bookChapters.map((p, i) => renderPubEntry(p, i + 1)).join('');
+        document.getElementById('pub-bookChapters').innerHTML = chaptersHtml;
+
+        // Render patents
+        const patentsHtml = PUBLICATIONS_DATA.patents.map((p, i) => renderPatent(p, i + 1)).join('');
+        document.getElementById('pub-patents').innerHTML = patentsHtml;
+
+        // Render conferences
+        const confHtml = PUBLICATIONS_DATA.conferences.map((c, i) => renderConf(c, i + 1)).join('');
+        document.getElementById('pub-conferences').innerHTML = confHtml;
+
+        // Tab switching
+        document.querySelectorAll('.pub-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.pub-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.pub-list').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('pub-' + this.dataset.tab).classList.add('active');
+            });
+        });
+    })();
+    </script>
+</body>
+</html>
+

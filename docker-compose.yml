@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+
+  # ── Nginx: Static site + reverse proxy ──
+  nginx:
+    image: nginx:alpine
+    container_name: mmilab-nginx
+    ports:
+      - "${HOST_PORT:-8080}:80"   # Change HOST_PORT in .env to avoid port conflicts
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - .:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── Node.js API: Backend + SQLite Database ──
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: mmilab-api
+    environment:
+      - PORT=3500
+      - JWT_SECRET=${JWT_SECRET}    # Set in .env file — never hardcode this
+      - NODE_ENV=production
+    volumes:
+      - mmilab-db:/app/db           # SQLite database (persistent across restarts)
+      - mmilab-uploads:/app/uploads # Uploaded documents (persistent across restarts)
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3500/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mmilab-db:
+    driver: local
+  mmilab-uploads:
+    driver: local

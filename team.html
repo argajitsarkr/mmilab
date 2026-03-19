@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Team — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <style>
+        /* ── PI Section ── */
+        .pi-grid { display: grid; grid-template-columns: 1fr 1fr; }
+        .pi-portrait {
+            background: var(--color-warm-surface); min-height: 300px; border: var(--border-light);
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pi-portrait::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(transparent, rgba(209,90,43,0.08)); }
+        .pi-portrait .photo-placeholder {
+            width: 140px; height: 140px; border-radius: 50%; 
+            background: var(--color-warm-border); display: flex; align-items: center; justify-content: center;
+            color: var(--color-text-secondary); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .pi-bio { border: var(--border-light); padding: 32px; margin-left: -1px; background: white; }
+        .stat-row { display: flex; gap: 32px; margin-top: 20px; padding-top: 20px; border-top: var(--border-light); }
+        .stat-num { font-family: var(--font-display); font-size: 2rem; font-weight: 400; letter-spacing: -0.04em; line-height: 1; color: var(--brand-orange); }
+        .stat-label { margin-top: 8px; }
+        .pi-links { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+        .pi-links a { padding: 8px 16px; border: var(--border-light); transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+        .pi-links a:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+
+        /* ── Scholar Card Link Wrapper ── */
+        .scholar-card-link {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .scholar-card-link .scholar-card {
+            flex: 1;
+        }
+
+        /* ── Scholar Cards ── */
+        .scholar-card {
+            border: var(--border-light); background: white; transition: var(--transition);
+            display: flex; flex-direction: column;
+        }
+        .scholar-card:hover { border-color: var(--brand-orange); }
+        .scholar-photo {
+            height: 220px; min-height: 220px; max-height: 220px;
+            background: var(--color-warm-surface);
+            display: flex; align-items: center; justify-content: center;
+            border-bottom: var(--border-light); position: relative; overflow: hidden;
+        }
+        .scholar-photo .photo-placeholder {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: var(--color-warm-border); display: flex; align-items: center; justify-content: center;
+            color: var(--color-text-secondary); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .scholar-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .scholar-body { padding: 28px; flex: 1; display: flex; flex-direction: column; }
+        .role-badge {
+            display: inline-block; padding: 4px 12px;
+            background: var(--brand-orange-glow); color: var(--brand-orange);
+            margin-bottom: 14px; font-weight: 700; align-self: flex-start;
+        }
+        .scholar-name { font-family: var(--font-display); font-size: 1.3rem; font-weight: 500; margin-bottom: 10px; }
+        .scholar-work { color: var(--color-text-secondary); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; flex: 1; }
+        .scholar-links { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 16px; border-top: var(--border-light); }
+        .scholar-links a {
+            padding: 6px 14px; border: var(--border-light); font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase; transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .scholar-links a:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+        .scholar-links a svg { width: 12px; height: 12px; }
+
+        /* ── Section Header ── */
+        .section-header { padding: 32px 0 24px; display: flex; justify-content: space-between; align-items: center; }
+        .section-count { font-family: var(--font-display); font-size: 2rem; font-weight: 400; color: var(--brand-orange); }
+
+        /* ── Responsive ── */
+        @media (max-width: 767px) {
+            .pi-grid { grid-template-columns: 1fr; }
+            .pi-bio { margin-left: 0; margin-top: -1px; }
+            .stat-row { gap: 32px; }
+            .scholar-photo { height: 180px; }
+        }
+        
+        /* ── Scholar Grid Layout ── */
+        .grid-3col-scholars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+        }
+        .grid-3col-scholars > * {
+            margin: 0 !important;
+            border: var(--border-light);
+            margin-right: -1px !important;
+            margin-bottom: -1px !important;
+        }
+
+        @media (max-width: 767px) {
+            .grid-3col-scholars {
+                grid-template-columns: 1fr;
+            }
+            .grid-3col-scholars > * {
+                margin: 0 !important;
+                margin-bottom: -1px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav"><div class="container nav-inner"><a href="index.html" class="nav-logo"><img src="assets/logo.png" alt="MMI Lab"></a><button class="nav-toggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 12 12" fill="none"><path d="M0.75 3H11.25" stroke="currentColor"/><path d="M0.75 6H11.25" stroke="currentColor"/><path d="M0.75 9H11.25" stroke="currentColor"/></svg></button><div class="nav-links"><a href="index.html" class="nav-link text-tag-s">Home</a><a href="research.html" class="nav-link text-tag-s">Research</a><a href="team.html" class="nav-link text-tag-s active">Our Team</a><a href="publications.html" class="nav-link text-tag-s">Publications</a><a href="projects.html" class="nav-link text-tag-s">Projects</a><a href="gallery.html" class="nav-link text-tag-s">Gallery</a><a href="login.html" class="nav-link text-tag-s">Scholar Login</a></div></div></nav>
+    <div class="spacer-nav"></div>
+
+    <!-- ═══ HERO ═══ -->
+    <section class="hero-dark" style="padding: 80px 0 60px;">
+        <div class="container" style="position: relative; z-index: 1;">
+            <div class="accent-bar" style="margin-bottom: 24px;"></div>
+            <h1 class="text-display">Our Team</h1>
+            <div style="height: 24px;"></div>
+            <p class="text-paragraph-l" style="max-width: 600px;">The brilliant minds operating at the intersection of immunology, microbiology, and biomaterials.</p>
+        </div>
+    </section>
+
+    <!-- ═══ PRINCIPAL INVESTIGATOR ═══ -->
+    <section class="section-warm">
+        <div class="container">
+            <div class="pi-grid">
+                <div class="pi-portrait">
+                    <img src="assets/team/surajit-bhattacharjee-new.jpg" alt="Dr. Surajit Bhattacharjee" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div class="pi-bio">
+                    <div class="dot-tag text-tag-s" style="margin-bottom: 20px;">Principal Investigator</div>
+                    <h2 class="text-headline" style="font-size: 2rem; margin-bottom: 8px;">Dr. Surajit Bhattacharjee, PhD</h2>
+                    <p class="text-paragraph-m" style="color: var(--brand-orange); margin-bottom: 16px; font-weight: 600;">Associate Professor</p>
+                    <p class="text-paragraph-m" style="color: var(--color-text-secondary); margin-bottom: 4px;">Department of Molecular Biology &amp; Bioinformatics</p>
+                    <p class="text-paragraph-m" style="color: var(--color-text-secondary); margin-bottom: 20px;">Tripura University (A Central University), Suryamaninagar, Tripura, India</p>
+
+                    <p class="text-paragraph-m" style="color: var(--color-text-secondary); margin-bottom: 12px;">PhD in Microbiology and Immunology (Bose Institute, Jadavpur University) with 15+ years of research and teaching experience. Former Postdoctoral Research Associate at the University of Illinois at Chicago, USA.</p>
+
+                    <p class="text-paragraph-m" style="color: var(--color-text-secondary); margin-bottom: 20px;">Research expertise in <em>Leishmania</em> and bacterial biofilm-associated infection, animal models of Leishmanial infection, cell signaling, immune response during host-pathogen interaction, and antimicrobial drug discovery. Recipient of six extramural research grants as PI from DBT, DST-SERB, ICMR, and BIRAC.</p>
+
+                    <div class="pi-links">
+                        <a href="https://scholar.google.com/citations?hl=en&user=Db0b9lsAAAAJ&view_op=list_works" target="_blank" class="text-tag-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Google Scholar</a>
+                        <a href="mailto:sbhattacharjee@gmail.com" class="text-tag-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg> Email</a>
+                        <a href="tel:+918974984569" class="text-tag-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> Phone</a>
+                        <a href="assets/docs/surajit-cv.pdf" target="_blank" class="text-tag-s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                    <div class="stat-row">
+                        <div><div class="stat-num">90+</div><div class="stat-label text-tag-s" style="color: var(--color-text-secondary);">Publications</div></div>
+                        <div><div class="stat-num">7</div><div class="stat-label text-tag-s" style="color: var(--color-text-secondary);">PhDs Guided</div></div>
+                        <div><div class="stat-num">3</div><div class="stat-label text-tag-s" style="color: var(--color-text-secondary);">Patents</div></div>
+                        <div><div class="stat-num">6</div><div class="stat-label text-tag-s" style="color: var(--color-text-secondary);">Grants (PI)</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ FULL-TIME PhD SCHOLARS (6) ═══ -->
+    <section class="section-surface" style="padding-top: 40px;">
+        <div class="container">
+            <div class="section-header">
+                <div class="dot-tag text-tag-s">Full-Time PhD Scholars</div>
+                <div class="section-count">06</div>
+            </div>
+        </div>
+        <div class="container grid-3col-scholars">
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/suman-paul.html'">
+                <div class="scholar-photo"><img src="assets/team/suman-paul.jpeg" alt="Mr. Suman Paul"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Mr. Suman Paul</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/argajit-sarkar.html'">
+                <div class="scholar-photo"><img src="assets/team/argajit-sarkar.jpg" alt="Mr. Argajit Sarkar"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Mr. Argajit Sarkar</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="assets/docs/argajit-cv.pdf" target="_blank" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/debajyoti-datta.html'">
+                <div class="scholar-photo"><img src="assets/team/debajyoti-datta.jpg" alt="Mr. Debajyoti Datta"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Mr. Debajyoti Datta</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/moumita-debnath.html'">
+                <div class="scholar-photo"><img src="assets/team/moumita-debnath.jpg" alt="Ms. Moumita Debnath"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Ms. Moumita Debnath</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/barsha-ghosh.html'">
+                <div class="scholar-photo"><img src="assets/team/barsha-ghosh.jpeg" alt="Ms. Barsha Ghosh"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Ms. Barsha Ghosh</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/diptani-saha.html'">
+                <div class="scholar-photo"><img src="assets/team/diptani-saha.jpeg" alt="Ms. Diptani Saha"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s">PhD Scholar</div>
+                    <div class="scholar-name">Ms. Diptani Saha</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══ PART-TIME PhD SCHOLARS (2) ═══ -->
+    <section class="section-warm" style="padding-top: 40px;">
+        <div class="container">
+            <div class="section-header">
+                <div class="dot-tag text-tag-s">Part-Time PhD Scholars</div>
+                <div class="section-count">02</div>
+            </div>
+        </div>
+        <div class="container grid-3col-scholars">
+
+            <div class="scholar-card">
+                <div class="scholar-photo"><div class="photo-placeholder">Photo</div></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s" style="background: rgba(43, 90, 209, 0.12); color: #2B5AD1;">Part-Time Scholar</div>
+                    <div class="scholar-name">Dr. Epsita Ghosh</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scholar-card">
+                <div class="scholar-photo"><div class="photo-placeholder">Photo</div></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s" style="background: rgba(43, 90, 209, 0.12); color: #2B5AD1;">Part-Time Scholar</div>
+                    <div class="scholar-name">Mr. Mihir Lal Das</div>
+                    <p class="scholar-work">Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══ PROJECT FELLOW (1) ═══ -->
+    <section class="section-surface" style="padding-top: 40px;">
+        <div class="container">
+            <div class="section-header">
+                <div class="dot-tag text-tag-s">Project Fellow</div>
+                <div class="section-count">01</div>
+            </div>
+        </div>
+        <div class="container grid-3col-scholars">
+
+            <div class="scholar-card scholar-card-link" onclick="window.location.href='profiles/sanchari-pal.html'">
+                <div class="scholar-photo"><img src="assets/team/sanchari-pal.jpeg" alt="Sanchari Pal"></div>
+                <div class="scholar-body">
+                    <div class="role-badge text-tag-s" style="background: rgba(43, 168, 80, 0.12); color: #2BA850;">Project Fellow</div>
+                    <div class="scholar-name">Ms. Sanchari Pal</div>
+                    <p class="scholar-work">ICMR-funded project. Research focus area to be updated.</p>
+                    <div class="scholar-links">
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg> Scholar</a>
+                        <a href="#" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> CV</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══ POST-DOCTORAL FELLOW (0) ═══ -->
+
+    <!-- ═══ ALUMNI / FORMER MEMBERS ═══ -->
+    <section class="section-surface" style="padding-top: 40px; padding-bottom: 80px;">
+        <div class="container">
+            <div class="section-header">
+                <div class="dot-tag text-tag-s">Alumni &amp; Former Members</div>
+            </div>
+            <p style="color: var(--color-text-secondary); margin-top: 16px; margin-bottom: 32px; max-width: 600px;">Our alumni continue to make an impact across academia, industry, and healthcare worldwide.</p>
+        </div>
+        <div class="container">
+            <style>
+                .alumni-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0; }
+                .alumni-card { border: var(--border-light); padding: 28px; background: white; margin-left: -1px; margin-top: -1px; transition: var(--transition); }
+                .alumni-card:hover { border-color: var(--brand-orange); z-index: 1; position: relative; }
+                .alumni-name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin-bottom: 6px; }
+                .alumni-role { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+                .alumni-affiliation { font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.5; }
+                .alumni-period { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 10px; padding-top: 10px; border-top: var(--border-light); }
+            </style>
+            <div class="alumni-grid">
+
+                <!-- ── Postdoctoral Guidance ── -->
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Avik Sarkar</div>
+                    <div class="alumni-role">Postdoctoral Fellow (DST-SERB)</div>
+                    <div class="alumni-affiliation">National Postdoctoral Fellow, DST-SERB</div>
+                    <div class="alumni-period">April 2017 – March 2019</div>
+                </div>
+
+                <!-- ── PhD Guidance (Completed & Awarded) ── -->
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Antu Das</div>
+                    <div class="alumni-role">Former PhD Scholar · 2018</div>
+                    <div class="alumni-affiliation">Currently Postdoc Fellow, University of Pittsburgh, USA</div>
+                    <div class="alumni-period">PhD Awarded 2018</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Manash Chandra Das</div>
+                    <div class="alumni-role">Former PhD Scholar · 2018</div>
+                    <div class="alumni-affiliation">Currently Assistant Professor, Govt. Polytechnique College</div>
+                    <div class="alumni-period">PhD Awarded 2018</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Chinmoy Ghosh</div>
+                    <div class="alumni-role">Former PhD Scholar (Co-supervisor) · 2019</div>
+                    <div class="alumni-affiliation">Currently Postdoc, Virginia Commonwealth University, USA</div>
+                    <div class="alumni-period">PhD Awarded 2019 · KIIT School of Biotechnology, KIIT University</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Sandeep Das</div>
+                    <div class="alumni-role">Former PhD Scholar</div>
+                    <div class="alumni-affiliation">Currently Postdoc, Louisiana State University Health Sciences Center Shreveport, USA</div>
+                    <div class="alumni-period">Department of Human Physiology, Tripura University</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Shukdeb Acharjee</div>
+                    <div class="alumni-role">Former PhD Scholar · 2024</div>
+                    <div class="alumni-affiliation">Currently Assistant Professor, Techno India University, Agartala</div>
+                    <div class="alumni-period">PhD Awarded 2024</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Sanghamitra Goswami</div>
+                    <div class="alumni-role">Former PhD Scholar · 2025</div>
+                    <div class="alumni-affiliation">&nbsp;</div>
+                    <div class="alumni-period">PhD Awarded 2025</div>
+                </div>
+
+                <div class="alumni-card">
+                    <div class="alumni-name">Dr. Chandam Ray Barman</div>
+                    <div class="alumni-role">Former PhD Scholar · 2025</div>
+                    <div class="alumni-affiliation">&nbsp;</div>
+                    <div class="alumni-period">PhD Awarded 2025</div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
+    <script src="js/main.js"></script>
+</body>
+</html>
+

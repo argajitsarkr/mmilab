@@ -1,0 +1,818 @@
+// ── MMI Lab Dashboard Application ──
+(function() {
+  const API = '/api';
+  const token = localStorage.getItem('mmilab_token');
+  const user = JSON.parse(localStorage.getItem('mmilab_user') || 'null');
+
+  if (!token || !user) { window.location.href = 'login.html'; return; }
+
+  // Set role class on body
+  document.body.classList.add(`role-${user.role}`);
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userRole').textContent = user.role === 'pi' ? 'Principal Investigator' : 'PhD Scholar';
+
+  // ── API Helper ──
+  async function api(endpoint, options = {}) {
+    const res = await fetch(`${API}${endpoint}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...(options.headers || {}) }
+    });
+    if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+    return res.json();
+  }
+
+  // ── Navigation ──
+  const navItems = document.querySelectorAll('.dash-nav-item');
+  const pages = document.querySelectorAll('.dash-page');
+
+  function navigateTo(page) {
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.page === page));
+    pages.forEach(p => p.classList.toggle('active', p.id === `page-${page}`));
+    loadPage(page);
+    // Close mobile sidebar
+    document.getElementById('sidebar').classList.remove('open');
+  }
+
+  navItems.forEach(item => item.addEventListener('click', () => navigateTo(item.dataset.page)));
+
+  // Handle hash navigation (for QR code links)
+  function handleHash() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('stock/')) {
+      navigateTo('stock');
+    } else if (hash) {
+      navigateTo(hash);
+    }
+  }
+  window.addEventListener('hashchange', handleHash);
+
+  // ── Logout ──
+  function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('logoutBtnMobile')?.addEventListener('click', logout);
+
+  // ── Mobile Menu ──
+  document.getElementById('menuToggle')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // ── Page Loaders ──
+  async function loadPage(page) {
+    switch(page) {
+      case 'overview': return loadOverview();
+      case 'stock': return loadStock();
+      case 'docs': return loadDocs();
+
+      case 'scholars': return user.role === 'pi' ? loadScholars() : null;
+      case 'profile': return loadProfile();
+    }
+  }
+
+  // ══════════════════════════════════════
+  // ── OVERVIEW PAGE
+  // ══════════════════════════════════════
+  async function loadOverview() {
+    const el = document.getElementById('page-overview');
+
+    const html = `
+      <div class="dash-header" style="margin-bottom: 32px;">
+        <h1>Welcome, ${user.role === 'pi' ? 'Dr. Bhattacharjee' : user.name.split(' ').pop()}</h1>
+        <p>Bacteria Stock Registry — Standard Operating Procedure (SOP)</p>
+      </div>
+
+      <div style="background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">How to use the Stock Registry</h3>
+
+        <p style="color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.6;">
+          The Stock Registry is the central database for all bacterial strains and vials stored in the MMI Lab <strong>-80°C freezer</strong>.
+          To maintain an accurate inventory and prevent loss of critical strains, please follow these guidelines carefully.
+        </p>
+
+        <div style="background: rgba(209, 90, 43, 0.06); border: 1px solid var(--color-warm-border); padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+          <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Our -80°C Freezer Layout</h4>
+          <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6; margin-bottom: 8px;">
+            We have <strong>one -80°C freezer</strong> with two storage areas:
+          </p>
+          <ul style="color: var(--color-text-secondary); font-size: 0.85rem; margin-left: 20px; line-height: 1.6;">
+            <li><strong>Top Shelf</strong> — Samples are stored here (cryovials in labeled boxes).</li>
+            <li><strong>Below Top Shelf</strong> — Additional storage area for samples.</li>
+          </ul>
+          <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6; margin-top: 8px;">
+            When adding stock, always select the correct <strong>Shelf</strong>, then specify the <strong>Box</strong> (e.g., Box W1, Box M1) and <strong>Grid Position</strong> (e.g., A1, B3).
+          </p>
+        </div>
+
+        <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 5v14M5 12h14"/></svg>
+              Step 1: Adding a New Stock
+            </h4>
+            <ol style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>Go to <strong>"Stock Registry"</strong> in the sidebar and click <strong>"+ Add Stock"</strong>.</li>
+              <li>Enter the <strong>Vial ID</strong> using the format: <code style="background: rgba(0,0,0,0.06); padding: 1px 4px;">XX-NN-T</code> (e.g., <code style="background: rgba(0,0,0,0.06); padding: 1px 4px;">VC-03-W</code> for Vibrio cholerae, vial 3, Working).</li>
+              <li>Choose <strong>Master</strong> (never to be routinely cultured) or <strong>Working</strong> stock.</li>
+              <li>Select the <strong>Shelf</strong> (Top Shelf or Below Top Shelf), then enter the <strong>Box</strong> and <strong>Grid position</strong>.</li>
+              <li>Click <strong>"Add Stock"</strong> to save.</li>
+            </ol>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Step 2: Check-Out / Check-In
+            </h4>
+            <ol style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>When <strong>removing</strong> a vial from the freezer, click <strong>"Check Out"</strong> on that row. The status changes to <span class="badge badge-in-use">In Use</span>.</li>
+              <li>When <strong>returning</strong> the vial to its exact location, click <strong>"Check In"</strong>. The status returns to <span class="badge badge-available">Available</span>.</li>
+              <li>Every check-out/in is logged with your name and timestamp for accountability.</li>
+            </ol>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+              Depleting & Deleting
+            </h4>
+            <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>If a vial is emptied, contaminated, or destroyed — <strong>do not delete</strong> the record. Click <strong>"Mark Depleted"</strong> instead to keep the history.</li>
+              <li><strong style="color: #dc2626;">Never deplete a Master Stock</strong> without permission from the PI.</li>
+              <li>Only the <strong>person who added the entry</strong> (or the PI) can delete it.</li>
+            </ul>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"/></svg>
+              QR Codes & History
+            </h4>
+            <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>Click <strong>"QR"</strong> on any vial to generate a printable QR code label.</li>
+              <li>Affix the printed QR label securely to the cryovial <strong>before</strong> freezing.</li>
+              <li>Click <strong>"Log"</strong> to view the full activity history (who added, checked out, checked in, etc.).</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    `;
+    el.innerHTML = html;
+  }
+
+  // ══════════════════════════════════════
+  // ── STOCK REGISTRY PAGE
+  // ══════════════════════════════════════
+  async function loadStock() {
+    const el = document.getElementById('page-stock');
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>Bacteria Stock Registry</h1>
+        <p>Search, manage, and track all bacterial strains</p>
+      </div>
+      <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
+        <input class="dash-search" id="stockSearch" type="text" placeholder="Search by Phenotype (e.g. biofilm) or Location..." style="flex: 1; min-width: 200px;">
+        <select class="dash-select" id="organismFilter" style="min-width: 150px;">
+          <option value="all">All Organisms</option>
+        </select>
+        <select class="dash-select" id="typeFilter" style="min-width: 140px;">
+          <option value="all">All Types</option>
+          <option value="Master">Master Stocks</option>
+          <option value="Working" selected>Working Stocks</option>
+        </select>
+        <select class="dash-select" id="stockFilter" style="min-width: 130px;">
+          <option value="all">All Status</option>
+          <option value="Available">Available</option>
+          <option value="In Use">In Use</option>
+          <option value="Depleted">Depleted</option>
+        </select>
+        <button class="dash-btn" id="addStrainBtn">+ Add Stock</button>
+      </div>
+      <div id="stockTable"></div>
+    `;
+
+    let searchTimeout;
+    const searchInput = document.getElementById('stockSearch');
+    const orgSelect = document.getElementById('organismFilter');
+    const typeSelect = document.getElementById('typeFilter');
+    const filterSelect = document.getElementById('stockFilter');
+
+    // Populate organisms
+    const orgs = await api('/strains/organisms');
+    orgs.forEach(o => orgSelect.add(new Option(o, o)));
+
+    async function refreshStock() {
+      const search = searchInput.value;
+      const org = orgSelect.value;
+      const type = typeSelect.value;
+      const status = filterSelect.value;
+      const strains = await api(`/strains?search=${encodeURIComponent(search)}&organism=${encodeURIComponent(org)}&stockType=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`);
+      renderStrainTable(strains);
+    }
+
+    searchInput.addEventListener('input', () => { clearTimeout(searchTimeout); searchTimeout = setTimeout(refreshStock, 300); });
+    orgSelect.addEventListener('change', refreshStock);
+    typeSelect.addEventListener('change', refreshStock);
+    filterSelect.addEventListener('change', refreshStock);
+    document.getElementById('addStrainBtn').addEventListener('click', showAddStrainModal);
+    refreshStock();
+  }
+
+  function renderStrainTable(strains) {
+    const el = document.getElementById('stockTable');
+    if (!strains.length) {
+      el.innerHTML = '<div style="padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No strains found.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="dash-table-wrap"><table class="dash-table">
+      <thead><tr><th>Vial ID</th><th>Organism</th><th>Phenotype / Resistance</th><th>Location</th><th>Stock Type</th><th>Added By</th><th>Action</th></tr></thead>
+      <tbody>${strains.map(s => {
+        const canDelete = user.role === 'pi' || s.added_by === user.id;
+        return `<tr>
+        <td><strong>${s.Vial_ID}</strong></td>
+        <td><em>${s.Organism}</em></td>
+        <td><span style="font-size: 0.8rem;">${s.Phenotype_Notes || '—'}</span></td>
+        <td><span style="font-size: 0.8rem;">${s.Freezer_Location || '—'}</span></td>
+        <td><span class="badge ${s.Stock_Type === 'Master' ? 'badge-depleted' : 'badge-active'}" style="opacity:0.8">${s.Stock_Type}</span></td>
+        <td><span style="font-size: 0.8rem;">${s.added_by_name || '—'}</span></td>
+        <td>
+          <div style="font-weight: 600; margin-bottom: 4px; font-size: 0.7rem; color: var(--color-text-secondary);">
+            <span class="badge badge-${s.Status === 'Available' ? 'available' : s.Status === 'In Use' ? 'in-use' : 'depleted'}">${s.Status}</span>
+          </div>
+          <button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem; margin-bottom: 2px;" onclick="window.dashApp.showEditStrainModal('${s.Vial_ID}')">Edit</button>
+          ${s.Status === 'Available' ? `<button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.checkoutStrain('${s.Vial_ID}')">Check Out</button>` : ''}
+          ${s.Status === 'In Use' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.checkinStrain('${s.Vial_ID}')">Check In</button>` : ''}
+          <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showQR('${s.Vial_ID}')">QR</button>
+          <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showHistory('${s.Vial_ID}')">Log</button>
+          ${canDelete ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteStrain('${s.Vial_ID}')">Delete</button>` : ''}
+        </td>
+      </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  }
+
+  // ── Modal System ──
+  function showModal(title, content, actions) {
+    let overlay = document.querySelector('.dash-modal-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'dash-modal-overlay';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `<div class="dash-modal">
+      <h2>${title}</h2>
+      <div>${content}</div>
+      <div class="dash-modal-actions">${actions || ''}</div>
+    </div>`;
+    overlay.classList.add('active');
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  }
+  function closeModal() { document.querySelector('.dash-modal-overlay')?.classList.remove('active'); }
+
+  // deleteStrain is now on window.dashApp below
+
+  function showAddStrainModal() {
+    showModal('Add New Stock Vial', `
+      <p style="margin-bottom: 20px; padding: 12px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px; font-size: 0.85rem; color: var(--color-text-secondary);">
+        <strong>Naming convention:</strong> Use format <code>XX-NN-T</code> where XX = organism code (e.g. VC, SA, AB), NN = serial number, T = M (Master) or W (Working). Example: <code>VC-03-W</code>
+      </p>
+      <div class="dash-form-group"><label class="dash-form-label">Vial ID *</label><input class="dash-input" id="newVialId" placeholder="e.g. VC-03-W"></div>
+      <div class="dash-form-group"><label class="dash-form-label">Organism *</label><input class="dash-input" id="newOrganism" placeholder="e.g. Vibrio cholerae O1 El Tor"></div>
+      <div class="dash-form-group">
+        <label class="dash-form-label">Stock Type *</label>
+        <select class="dash-input" id="newStockType">
+            <option value="Working">Working Stock</option>
+            <option value="Master">Master Stock</option>
+        </select>
+      </div>
+      <div class="dash-form-group"><label class="dash-form-label">Phenotype / Resistance Notes</label><textarea class="dash-input dash-textarea" id="newNotes" placeholder="e.g. Ampicillin-resistant, heavy metal tolerant, high biofilm former..."></textarea></div>
+      <fieldset style="border: var(--border-light); padding: 16px; margin-bottom: 20px;">
+        <legend style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); padding: 0 8px;">Freezer Location (-80°C)</legend>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="dash-form-group" style="margin-bottom: 0;">
+            <label class="dash-form-label">Shelf *</label>
+            <select class="dash-input" id="newShelf">
+                <option value="">Select shelf...</option>
+                <option value="Top Shelf">Top Shelf</option>
+                <option value="Below Top Shelf">Below Top Shelf</option>
+            </select>
+          </div>
+          <div class="dash-form-group" style="margin-bottom: 0;">
+            <label class="dash-form-label">Box / Rack</label>
+            <input class="dash-input" id="newBox" placeholder="e.g. Box W1">
+          </div>
+        </div>
+        <div class="dash-form-group" style="margin-top: 12px; margin-bottom: 0;">
+          <label class="dash-form-label">Grid Position</label>
+          <input class="dash-input" id="newGrid" placeholder="e.g. A1, B3">
+        </div>
+      </fieldset>
+    `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+       <button class="dash-btn" onclick="window.dashApp.addStrain()">Add Stock</button>`);
+  }
+
+  // ══════════════════════════════════════
+  // ── DOCUMENTS PAGE
+  // ══════════════════════════════════════
+  async function loadDocs() {
+    const el = document.getElementById('page-docs');
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>Document Repository</h1>
+        <p>Search, upload, and manage lab documents, protocols, and budgets</p>
+      </div>
+      <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
+        <input class="dash-search" id="docSearch" type="text" placeholder="Search inside documents (full-text search)..." style="flex: 1; min-width: 250px;">
+        <select class="dash-select" id="docTagFilter" style="min-width: 150px;">
+          <option value="all">All Categories</option>
+          <option value="Protocol">Protocols</option>
+          <option value="Budget">Budgets</option>
+          <option value="Draft">Drafts</option>
+          <option value="Forwarding Letter">Forwarding Letters</option>
+          <option value="Project Proposal">Project Proposals</option>
+          <option value="Uncategorized">Uncategorized</option>
+        </select>
+        <button class="dash-btn" id="uploadDocBtn">+ Upload Document</button>
+      </div>
+      <div id="docsContainer" class="dash-cards" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+    `;
+
+    let searchTimeout;
+    const searchInput = document.getElementById('docSearch');
+    const tagFilter = document.getElementById('docTagFilter');
+
+    async function refreshDocs() {
+      const search = searchInput.value;
+      const tag = tagFilter.value;
+      const docs = await api(`/docs?search=${encodeURIComponent(search)}&tag=${encodeURIComponent(tag)}`);
+      renderDocs(docs, search);
+    }
+
+    searchInput.addEventListener('input', () => { clearTimeout(searchTimeout); searchTimeout = setTimeout(refreshDocs, 400); });
+    tagFilter.addEventListener('change', refreshDocs);
+    document.getElementById('uploadDocBtn').addEventListener('click', showUploadDocModal);
+    
+    refreshDocs();
+  }
+
+  function getFileIcon(mimetype) {
+    if (mimetype.includes('pdf')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
+    if (mimetype.includes('word') || mimetype.includes('document')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
+  }
+
+  function formatBytes(bytes) {
+      if(bytes == 0) return '0 Bytes';
+      var k = 1024, dm = 2, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+
+  function renderDocs(docs, searchPhrase) {
+    const el = document.getElementById('docsContainer');
+    if (!docs.length) {
+      el.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No documents found.</p></div>';
+      return;
+    }
+    
+    // Simple frontend highlighting just for the title if search phrase exists
+    const highlight = (text) => {
+        if (!searchPhrase) return text;
+        const regex = new RegExp(`(${searchPhrase})`, 'gi');
+        return text.replace(regex, '<span class="doc-search-highlight">$1</span>');
+    };
+
+    const currentToken = localStorage.getItem('mmilab_token');
+
+    el.innerHTML = docs.map(d => `
+      <div class="doc-card">
+        <div>
+          <div class="doc-icon">${getFileIcon(d.mimetype)}</div>
+          <div class="doc-title">${highlight(d.original_name)}</div>
+          <div class="doc-meta">
+            <span class="badge badge-active" style="margin-bottom:8px;">${d.tag}</span><br>
+            Uploaded by <strong>${d.uploader_name}</strong><br>
+            ${new Date(d.upload_date).toLocaleDateString()} • ${formatBytes(d.size)}
+            ${d.is_public ? '<span style="color: #2BA850; margin-left:8px;">Public</span>' : '<span style="color: #D19D2B; margin-left:8px;">Private</span>'}
+          </div>
+        </div>
+        <div class="doc-actions">
+          <a href="/api/docs/${d.id}/download?token=${currentToken}" target="_blank" class="dash-btn" style="text-decoration: none; flex: 1; text-align: center;">Download</a>
+          ${(d.uploader_id === user.id || user.role === 'pi') ? `<button class="dash-btn-outline" style="padding: 10px;" onclick="window.dashApp.deleteDoc(${d.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg></button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showUploadDocModal() {
+    showModal('Upload Document', `
+      <form id="uploadDocForm">
+        <p style="margin-bottom: 20px; color: var(--color-text-secondary); font-size: 0.85rem;">Upload PDFs, Word Documents, or Text files. They will be scanned and fully indexed for searching.</p>
+        
+        <div class="dash-form-group">
+          <label class="dash-form-label">Document File *</label>
+          <input type="file" id="docFile" class="dash-input" accept=".pdf,.doc,.docx,.txt" required>
+        </div>
+        
+        <div class="dash-form-group">
+          <label class="dash-form-label">Category / Tag *</label>
+          <select class="dash-input" id="docTag">
+              <option value="Protocol">Protocol</option>
+              <option value="Budget">Budget</option>
+              <option value="Draft">Draft</option>
+              <option value="Forwarding Letter">Forwarding Letter</option>
+              <option value="Project Proposal">Project Proposal</option>
+              <option value="Uncategorized" selected>Uncategorized</option>
+          </select>
+        </div>
+        
+        <div class="dash-form-group">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+            <input type="checkbox" id="docIsPublic" checked> Make available to all scholars in the lab
+          </label>
+        </div>
+        
+        <div id="uploadStatus" style="margin-top: 16px; font-weight: 600; color: var(--brand-orange); display: none;">Uploading and indexing...</div>
+      </form>
+    `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+       <button class="dash-btn" onclick="document.getElementById('uploadDocForm').dispatchEvent(new Event('submit'))">Upload & Process</button>`);
+       
+    document.getElementById('uploadDocForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('docFile');
+        if (!fileInput.files.length) return alert('Please select a file.');
+        
+        document.getElementById('uploadStatus').style.display = 'block';
+        
+        const formData = new FormData();
+        formData.append('document', fileInput.files[0]);
+        formData.append('tag', document.getElementById('docTag').value);
+        formData.append('isPublic', document.getElementById('docIsPublic').checked);
+        
+        try {
+            const res = await fetch('/api/docs', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            
+            if (!res.ok) throw new Error(await res.text());
+            
+            closeModal();
+            loadDocs();
+        } catch (err) {
+            alert('Upload failed: ' + err.message);
+            document.getElementById('uploadStatus').style.display = 'none';
+        }
+    });
+  }
+
+  // deleteDoc is now on the main window.dashApp object below
+
+  // ══════════════════════════════════════
+  // ── PROJECTS PAGE
+  // ══════════════════════════════════════
+  async function loadProjects() {
+    const el = document.getElementById('page-projects');
+    const projects = await api('/projects');
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>Projects</h1>
+        <p>Active and completed funded research projects</p>
+      </div>
+      ${user.role === 'pi' ? `<div style="margin-bottom: 20px;"><button class="dash-btn" onclick="window.dashApp.showAddProject()">+ Add Project</button></div>` : ''}
+      <div class="dash-cards">
+        ${projects.length ? projects.map(p => `
+          <div class="dash-card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div class="dash-card-title">${p.title}</div>
+              <span class="badge badge-${p.status}">${p.status}</span>
+            </div>
+            ${p.funding_agency ? `<div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 8px;">Funded by: <strong>${p.funding_agency}</strong></div>` : ''}
+            ${p.description ? `<p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 12px;">${p.description}</p>` : ''}
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">
+              ${p.start_date ? `${p.start_date}${p.end_date ? ' → ' + p.end_date : ''}` : ''}
+            </div>
+            ${p.member_names ? `<div style="margin-top: 12px; font-size: 0.8rem;">Team: ${p.member_names}</div>` : ''}
+          </div>
+        `).join('') : '<p style="color: var(--color-text-secondary);">No projects yet. ${user.role === "pi" ? "Click the button above to add one." : ""}</p>'}
+      </div>
+    `;
+  }
+
+  // ══════════════════════════════════════
+  // ── ALL SCHOLARS PAGE (PI only)
+  // ══════════════════════════════════════
+  async function loadScholars() {
+    const el = document.getElementById('page-scholars');
+    const data = await api('/dashboard/pi/overview');
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>All Scholars</h1>
+        <p>Overview of all lab members and their activity</p>
+      </div>
+      <div class="dash-cards">
+        ${data.scholars.map(s => `
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <img class="dash-card-avatar" src="${s.photo_url || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23E0D8CF%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%236B6560%22>${s.name.charAt(0)}</text></svg>'}" alt="${s.name}">
+              <div>
+                <div class="dash-card-title">${s.name}</div>
+                <div class="dash-card-subtitle">${s.email}</div>
+              </div>
+            </div>
+            ${s.research_topic ? `<div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;"><strong>Research:</strong> ${s.research_topic}</div>` : ''}
+            ${s.enrollment_date ? `<div style="font-size: 0.8rem; color: var(--color-text-secondary);">Enrolled: ${s.enrollment_date}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // ══════════════════════════════════════
+  // ── PROFILE PAGE
+  // ══════════════════════════════════════
+  async function loadProfile() {
+    const el = document.getElementById('page-profile');
+    const data = await api(`/dashboard/${user.id}`);
+    const p = data.profile || {};
+
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>My Profile</h1>
+        <p>Edit your dashboard and research information</p>
+      </div>
+      <div style="border: var(--border-light); background: white; padding: 32px; max-width: 640px;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: var(--border-light);">
+          <img style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--color-warm-surface);" src="${user.photo_url || ''}" alt="${user.name}">
+          <div>
+            <div style="font-size: 1.25rem; font-weight: 600;">${user.name}</div>
+            <div style="font-size: 0.85rem; color: var(--color-text-secondary);">${user.email}</div>
+            <span class="badge badge-${user.role}" style="margin-top: 6px;">${user.role === 'pi' ? 'Principal Investigator' : 'Scholar'}</span>
+          </div>
+        </div>
+        <form id="profileForm">
+          <div class="dash-form-group"><label class="dash-form-label">Research Topic</label><textarea class="dash-input dash-textarea" id="profTopic">${p.research_topic || ''}</textarea></div>
+          <div class="dash-form-group"><label class="dash-form-label">Enrollment Date</label><input class="dash-input" id="profEnrollment" type="date" value="${p.enrollment_date || ''}"></div>
+          <div class="dash-form-group"><label class="dash-form-label">Current Experiments</label><textarea class="dash-input dash-textarea" id="profExperiments">${p.current_experiments || ''}</textarea></div>
+          <div class="dash-form-group"><label class="dash-form-label">Notes</label><textarea class="dash-input dash-textarea" id="profNotes">${p.notes || ''}</textarea></div>
+          <button type="submit" class="dash-btn">Save Changes</button>
+        </form>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: var(--border-light);">
+          <h3 style="font-family: var(--font-display); margin-bottom: 16px;">Change Password</h3>
+          <form id="passwordForm">
+            <div class="dash-form-group"><label class="dash-form-label">Current Password</label><input class="dash-input" id="currentPw" type="password"></div>
+            <div class="dash-form-group"><label class="dash-form-label">New Password</label><input class="dash-input" id="newPw" type="password" minlength="6"></div>
+            <button type="submit" class="dash-btn-outline">Change Password</button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await api(`/dashboard/${user.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          research_topic: document.getElementById('profTopic').value,
+          enrollment_date: document.getElementById('profEnrollment').value,
+          current_experiments: document.getElementById('profExperiments').value,
+          notes: document.getElementById('profNotes').value
+        })
+      });
+      alert('Profile saved!');
+    });
+
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const result = await api('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({
+            currentPassword: document.getElementById('currentPw').value,
+            newPassword: document.getElementById('newPw').value
+          })
+        });
+        if (result.error) throw new Error(result.error);
+        alert('Password changed!');
+        document.getElementById('passwordForm').reset();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+  } // <-- End of loadProfile
+
+  // ══════════════════════════════════════
+  // ── GLOBAL ACTIONS (exposed to window)
+  // ══════════════════════════════════════
+  window.dashApp = {
+    closeModal,
+
+    async addStrain() {
+      const organism = document.getElementById('newOrganism').value.trim();
+      const vialId = document.getElementById('newVialId').value.trim();
+      const shelf = document.getElementById('newShelf').value;
+      if (!organism || !vialId) return alert('Vial ID and Organism are required.');
+      if (!shelf) return alert('Please select a shelf location (Top Shelf or Below Top Shelf).');
+
+      // Build location string: "-80°C / Top Shelf / Box W1, A1"
+      const box = document.getElementById('newBox').value.trim();
+      const grid = document.getElementById('newGrid').value.trim();
+      let location = `-80°C / ${shelf}`;
+      if (box) location += ` / ${box}`;
+      if (grid) location += `, ${grid}`;
+
+      const result = await api('/strains', {
+        method: 'POST',
+        body: JSON.stringify({
+          Vial_ID: vialId,
+          Organism: organism,
+          Stock_Type: document.getElementById('newStockType').value,
+          Freezer_Location: location,
+          Phenotype_Notes: document.getElementById('newNotes').value
+        })
+      });
+      if (result.error) return alert(result.error);
+      closeModal();
+      loadStock();
+    },
+
+    async showEditStrainModal(id) {
+      const strain = await api(`/strains/${id}`);
+      // Parse existing location to pre-fill fields
+      const loc = strain.Freezer_Location || '';
+      let editShelf = '', editBox = '', editGrid = '';
+      if (loc.includes('Top Shelf') && !loc.includes('Below')) editShelf = 'Top Shelf';
+      else if (loc.includes('Below Top Shelf')) editShelf = 'Below Top Shelf';
+      // Extract box and grid from location string like "-80°C / Top Shelf / Box W1, A1"
+      const locParts = loc.split('/').map(p => p.trim());
+      if (locParts.length >= 3) {
+        const boxGrid = locParts.slice(2).join('/').trim();
+        const commaIdx = boxGrid.indexOf(',');
+        if (commaIdx > -1) {
+          editBox = boxGrid.substring(0, commaIdx).trim();
+          editGrid = boxGrid.substring(commaIdx + 1).trim();
+        } else {
+          editBox = boxGrid;
+        }
+      }
+
+      showModal('Edit Stock Vial', `
+        <div class="dash-form-group"><label class="dash-form-label">Vial ID</label><input class="dash-input" value="${strain.Vial_ID}" disabled></div>
+        <div class="dash-form-group"><label class="dash-form-label">Organism *</label><input class="dash-input" id="editOrganism" value="${strain.Organism}"></div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Stock Type *</label>
+          <select class="dash-input" id="editStockType">
+              <option value="Working" ${strain.Stock_Type === 'Working' ? 'selected' : ''}>Working Stock</option>
+              <option value="Master" ${strain.Stock_Type === 'Master' ? 'selected' : ''}>Master Stock</option>
+          </select>
+        </div>
+        <div class="dash-form-group"><label class="dash-form-label">Phenotype / Resistance Notes</label><textarea class="dash-input dash-textarea" id="editNotes">${strain.Phenotype_Notes || ''}</textarea></div>
+        <fieldset style="border: var(--border-light); padding: 16px; margin-bottom: 20px;">
+          <legend style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); padding: 0 8px;">Freezer Location (-80°C)</legend>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="dash-form-group" style="margin-bottom: 0;">
+              <label class="dash-form-label">Shelf</label>
+              <select class="dash-input" id="editShelf">
+                  <option value="">Select shelf...</option>
+                  <option value="Top Shelf" ${editShelf === 'Top Shelf' ? 'selected' : ''}>Top Shelf</option>
+                  <option value="Below Top Shelf" ${editShelf === 'Below Top Shelf' ? 'selected' : ''}>Below Top Shelf</option>
+              </select>
+            </div>
+            <div class="dash-form-group" style="margin-bottom: 0;">
+              <label class="dash-form-label">Box / Rack</label>
+              <input class="dash-input" id="editBox" value="${editBox}">
+            </div>
+          </div>
+          <div class="dash-form-group" style="margin-top: 12px; margin-bottom: 0;">
+            <label class="dash-form-label">Grid Position</label>
+            <input class="dash-input" id="editGrid" value="${editGrid}">
+          </div>
+        </fieldset>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.editStrain('${strain.Vial_ID}')">Save Changes</button>`);
+    },
+
+    async editStrain(id) {
+      const organism = document.getElementById('editOrganism').value.trim();
+      if (!organism) return alert('Organism is required');
+      const shelf = document.getElementById('editShelf').value;
+      const box = document.getElementById('editBox').value.trim();
+      const grid = document.getElementById('editGrid').value.trim();
+      let location = '';
+      if (shelf) {
+        location = `-80°C / ${shelf}`;
+        if (box) location += ` / ${box}`;
+        if (grid) location += `, ${grid}`;
+      }
+      await api(`/strains/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          Organism: organism,
+          Stock_Type: document.getElementById('editStockType').value,
+          Freezer_Location: location,
+          Phenotype_Notes: document.getElementById('editNotes').value
+        })
+      });
+      closeModal();
+      loadStock();
+    },
+
+    async checkoutStrain(id) {
+      if (!confirm('Check out this strain?')) return;
+      await api(`/strains/${id}/checkout`, { method: 'POST', body: JSON.stringify({}) });
+      loadStock();
+    },
+
+    async checkinStrain(id) {
+      const passage = prompt('Updated passage number (leave blank to skip):');
+      await api(`/strains/${id}/checkin`, {
+        method: 'POST',
+        body: JSON.stringify({ passage_number: passage ? parseInt(passage) : null })
+      });
+      // Refresh current page
+      const activePage = document.querySelector('.dash-nav-item.active')?.dataset.page;
+      loadPage(activePage || 'overview');
+    },
+
+    async showQR(id) {
+      const data = await api(`/strains/${id}/qrcode`);
+      showModal('QR Code Label', `
+        <div class="qr-container">
+          <img src="${data.qr}" alt="QR Code">
+          <div class="qr-label">${data.strain_id}</div>
+          <div class="qr-sublabel">${data.organism}</div>
+          <div style="margin-top: 16px;"><button class="dash-btn-outline" onclick="window.print()">Print Label</button></div>
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
+    async showHistory(id) {
+      const logs = await api(`/strains/${id}/history`);
+      const strain = await api(`/strains/${id}`);
+      showModal(`History — ${strain.strain_id}`, `
+        <p style="margin-bottom: 16px; color: var(--color-text-secondary);"><em>${strain.organism}</em></p>
+        ${logs.length ? logs.map(l => `
+          <div class="activity-item">
+            <div class="activity-dot"></div>
+            <div><div class="activity-text"><span class="badge badge-${l.action === 'checkout' ? 'in-use' : l.action === 'checkin' ? 'available' : l.action === 'depleted' ? 'depleted' : 'active'}">${l.action}</span> by ${l.user_name}</div>
+            <div class="activity-time">${new Date(l.timestamp).toLocaleString()}${l.notes ? ' — ' + l.notes : ''}</div></div>
+          </div>
+        `).join('') : '<p style="color: var(--color-text-secondary);">No history yet.</p>'}
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
+    async showAddProject() {
+      const users = await api('/auth/users');
+      const scholars = users.filter(u => u.role === 'scholar');
+      showModal('Add New Project', `
+        <div class="dash-form-group"><label class="dash-form-label">Project Title *</label><input class="dash-input" id="projTitle"></div>
+        <div class="dash-form-group"><label class="dash-form-label">Funding Agency</label><input class="dash-input" id="projFunding" placeholder="e.g. DBT, DST-SERB, ICMR"></div>
+        <div class="dash-form-group"><label class="dash-form-label">Description</label><textarea class="dash-input dash-textarea" id="projDesc"></textarea></div>
+        <div class="dash-form-group"><label class="dash-form-label">Start Date</label><input class="dash-input" id="projStart" type="date"></div>
+        <div class="dash-form-group"><label class="dash-form-label">End Date</label><input class="dash-input" id="projEnd" type="date"></div>
+        <div class="dash-form-group"><label class="dash-form-label">Team Members</label>
+          <div id="projMembers">${scholars.map(s => `<label style="display: block; padding: 6px 0; font-size: 0.9rem;"><input type="checkbox" value="${s.id}" style="margin-right: 8px;">${s.name}</label>`).join('')}</div>
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.addProject()">Create Project</button>`);
+    },
+
+    async deleteStrain(id) {
+      if (!confirm(`Are you sure you want to permanently delete strain "${id}"?\n\nThis action cannot be undone. Only the person who added this entry (or the PI) can delete it.`)) return;
+      const result = await api(`/strains/${id}`, { method: 'DELETE' });
+      if (result.error) return alert('Delete failed: ' + result.error);
+      loadStock();
+    },
+
+    async deleteDoc(id) {
+      if (!confirm('Are you sure you want to permanently delete this document?')) return;
+      await api(`/docs/${id}`, { method: 'DELETE' });
+      loadDocs();
+    },
+
+    async addProject() {
+      const title = document.getElementById('projTitle').value.trim();
+      if (!title) return alert('Project title is required');
+      const memberCheckboxes = document.querySelectorAll('#projMembers input:checked');
+      const member_ids = Array.from(memberCheckboxes).map(cb => parseInt(cb.value));
+
+      await api('/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          funding_agency: document.getElementById('projFunding').value,
+          description: document.getElementById('projDesc').value,
+          start_date: document.getElementById('projStart').value,
+          end_date: document.getElementById('projEnd').value,
+          member_ids
+        })
+      });
+      closeModal();
+      loadProjects();
+    }
+  };
+
+  // ── Initial Load ──
+  handleHash();
+  if (!window.location.hash) loadOverview();
+})();

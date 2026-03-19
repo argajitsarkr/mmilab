@@ -1,0 +1,14 @@
+# Normalise line endings to LF on the server (Linux)
+* text=auto eol=lf
+
+# Binary files — never mess with line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.doc binary
+*.docx binary
+*.woff binary
+*.woff2 binary

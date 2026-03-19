@@ -1,0 +1,28 @@
+# ── Environment & Secrets ──
+.env
+
+# ── Database (never commit — lives in Docker volume on server) ──
+api/db/mmilab.db
+api/db/mmilab.db-shm
+api/db/mmilab.db-wal
+
+# ── Uploaded files (never commit — lives in Docker volume on server) ──
+api/uploads/
+
+# ── Node modules ──
+node_modules/
+api/node_modules/
+
+# ── OS & Editor ──
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+
+# ── Logs ──
+*.log
+npm-debug.log*
+
+# ── Claude Code internal files ──
+.claude/

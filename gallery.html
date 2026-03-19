@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ── Gallery Filter Tabs ── */
+        .gallery-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--color-warm-border); margin-bottom: 40px; overflow-x: auto; }
+        .gallery-tab {
+            padding: 14px 24px; cursor: pointer; border: none; background: none;
+            font-family: var(--font-body); font-weight: 600; font-size: 0.7rem;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--color-text-secondary); transition: var(--transition);
+            border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap;
+        }
+        .gallery-tab:hover { color: var(--color-text); }
+        .gallery-tab.active { color: var(--brand-orange); border-bottom-color: var(--brand-orange); }
+
+        /* ── Masonry Grid ── */
+        .gallery-grid {
+            columns: 3; column-gap: 16px;
+        }
+        .gallery-item {
+            break-inside: avoid; margin-bottom: 16px;
+            border: var(--border-light); background: white;
+            overflow: hidden; transition: var(--transition);
+            cursor: pointer; position: relative;
+        }
+        .gallery-item:hover { border-color: var(--brand-orange); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .gallery-item img { width: 100%; display: block; }
+        .gallery-caption {
+            padding: 16px 20px;
+        }
+        .gallery-caption-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+        .gallery-caption-meta { font-size: 0.75rem; color: var(--color-text-secondary); }
+
+        /* ── Lightbox ── */
+        .lightbox {
+            display: none; position: fixed; inset: 0; z-index: 2000;
+            background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+            padding: 40px;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: 4px; }
+        .lightbox-close {
+            position: absolute; top: 24px; right: 24px;
+            background: none; border: 1px solid rgba(255,255,255,0.3);
+            color: white; width: 44px; height: 44px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; transition: var(--transition);
+        }
+        .lightbox-close:hover { background: var(--brand-orange); border-color: var(--brand-orange); }
+        .lightbox-caption {
+            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.8); font-size: 0.85rem; text-align: center;
+            max-width: 600px;
+        }
+
+        /* ── Empty State ── */
+        .gallery-empty {
+            text-align: center; padding: 80px 40px;
+            border: 2px dashed var(--color-warm-border); background: white;
+        }
+        .gallery-empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
+        .gallery-empty-text { color: var(--color-text-secondary); font-size: 1rem; max-width: 400px; margin: 0 auto; }
+
+        @media (max-width: 1024px) { .gallery-grid { columns: 2; } }
+        @media (max-width: 600px) {
+            .gallery-grid { columns: 1; }
+            .gallery-tab { padding: 10px 16px; font-size: 0.6rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav"><div class="container nav-inner"><a href="index.html" class="nav-logo"><img src="assets/logo.png" alt="MMI Lab"></a><button class="nav-toggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 12 12" fill="none"><path d="M0.75 3H11.25" stroke="currentColor"/><path d="M0.75 6H11.25" stroke="currentColor"/><path d="M0.75 9H11.25" stroke="currentColor"/></svg></button><div class="nav-links"><a href="index.html" class="nav-link text-tag-s">Home</a><a href="research.html" class="nav-link text-tag-s">Research</a><a href="team.html" class="nav-link text-tag-s">Our Team</a><a href="publications.html" class="nav-link text-tag-s">Publications</a><a href="projects.html" class="nav-link text-tag-s">Projects</a><a href="gallery.html" class="nav-link text-tag-s active">Gallery</a><a href="login.html" class="nav-link text-tag-s">Scholar Login</a></div></div></nav>
+    <div class="spacer-nav"></div>
+
+    <!-- ═══ HERO ═══ -->
+    <section class="hero-dark" style="padding: 80px 0 60px;">
+        <div class="container" style="position: relative; z-index: 1;">
+            <div class="accent-bar" style="margin-bottom: 24px;"></div>
+            <h1 class="text-display">Gallery</h1>
+            <div style="height: 24px;"></div>
+            <p class="text-paragraph-l" style="max-width: 600px;">A glimpse into our laboratory, fieldwork, events, and the people behind the research.</p>
+        </div>
+    </section>
+
+    <!-- ═══ GALLERY CONTENT ═══ -->
+    <section class="section-warm">
+        <div class="container">
+            <div class="gallery-tabs">
+                <button class="gallery-tab active" data-filter="all">All</button>
+                <button class="gallery-tab" data-filter="lab">Lab & Equipment</button>
+                <button class="gallery-tab" data-filter="fieldwork">Fieldwork</button>
+                <button class="gallery-tab" data-filter="events">Events & Conferences</button>
+                <button class="gallery-tab" data-filter="team">Team Moments</button>
+            </div>
+
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Gallery items will be rendered by JS from the data below -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ LIGHTBOX ═══ -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose">✕</button>
+        <img id="lightboxImg" src="" alt="">
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+
+    <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
+
+    <script>
+    // ── Gallery Data ──
+    // Add your photos here! Each item needs: src, title, category, date (optional)
+    // Categories: "lab", "fieldwork", "events", "team"
+    const GALLERY_DATA = [
+        { src: "assets/gallery/interns-2025.jpg", title: "Interns from NIT, Agartala and KIT, bhuvneshwar", category: "team", date: "2025" },
+        { src: "assets/gallery/internship-mbb-zoology.jpg", title: "Internship Completion of Students from B.Sc Zoology from MBB Univeristy, Tripura", category: "events", date: "2025" },
+        { src: "assets/gallery/iit-guwahati-iisf-2024.jpg", title: "Whole lab went to IIT Guwahati to Join the India International Science Festival", category: "events", date: "2024" },
+        // Example entries (replace with your actual photos):
+        // { src: "assets/gallery/lab-pcr-setup.jpg", title: "PCR Setup in the Molecular Biology Suite", category: "lab", date: "2025" },
+        // { src: "assets/gallery/field-sample-collection.jpg", title: "Sample collection at Gomati River", category: "fieldwork", date: "2024" },
+        // { src: "assets/gallery/conference-iuis-2019.jpg", title: "IUIS 2019, Beijing — Oral Presentation", category: "events", date: "2019" },
+        // { src: "assets/gallery/team-lab-celebration.jpg", title: "Lab celebration after successful grant", category: "team", date: "2025" },
+    ];
+
+    const grid = document.getElementById('galleryGrid');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+
+    function renderGallery(filter) {
+        const items = filter === 'all' ? GALLERY_DATA : GALLERY_DATA.filter(d => d.category === filter);
+
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="gallery-empty">
+                <div class="gallery-empty-icon">📷</div>
+                <div class="gallery-empty-text">
+                    <strong>Photos coming soon!</strong><br>
+                    Lab photos, fieldwork images, and event snapshots will appear here.<br><br>
+                    <span style="font-size: 0.8rem; color: var(--color-text-secondary);">To add photos, place image files in <code>assets/gallery/</code> and update the GALLERY_DATA array in this page.</span>
+                </div>
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = items.map(item => `
+            <div class="gallery-item" data-src="${item.src}" data-title="${item.title}" data-category="${item.category}">
+                <img src="${item.src}" alt="${item.title}" loading="lazy">
+                <div class="gallery-caption">
+                    <div class="gallery-caption-title">${item.title}</div>
+                    <div class="gallery-caption-meta">${item.date || ''} · ${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</div>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click handlers for lightbox
+        grid.querySelectorAll('.gallery-item').forEach(item => {
+            item.addEventListener('click', () => {
+                lightboxImg.src = item.dataset.src;
+                lightboxCaption.textContent = item.dataset.title;
+                lightbox.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+    }
+
+    // Tab switching
+    document.querySelectorAll('.gallery-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.gallery-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            renderGallery(this.dataset.filter);
+        });
+    });
+
+    // Close lightbox
+    document.getElementById('lightboxClose').addEventListener('click', () => {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Initial render
+    renderGallery('all');
+    </script>
+    <script src="js/main.js"></script>
+</body>
+</html>
+

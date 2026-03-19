@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="dash" id="dashApp">
+        <!-- Sidebar -->
+        <aside class="dash-sidebar" id="sidebar">
+            <div class="dash-sidebar-header">
+                <a href="index.html"><img src="assets/logo.png" alt="MMI Lab" style="height: 36px;"></a>
+                <div class="text-tag-s" style="color: var(--color-text-muted-dark); margin-top: 8px;">Lab Management</div>
+            </div>
+            <nav class="dash-nav">
+                <button class="dash-nav-item active" data-page="overview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    Dashboard
+                </button>
+                <button class="dash-nav-item" data-page="stock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                    Stock Registry
+                </button>
+                <button class="dash-nav-item" data-page="docs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Documents
+                </button>
+
+                <button class="dash-nav-item pi-only" data-page="scholars">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    All Scholars
+                </button>
+                <button class="dash-nav-item" data-page="profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    My Profile
+                </button>
+            </nav>
+            <div class="dash-sidebar-footer">
+                <div class="dash-user-info">
+                    <div class="dash-user-name" id="userName">Loading...</div>
+                    <div class="dash-user-role" id="userRole"></div>
+                </div>
+                <button class="dash-logout" id="logoutBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Logout
+                </button>
+                <div style="margin-top: 16px; font-size: 0.7rem; color: var(--color-text-muted-dark); text-align: center; border-top: 1px solid var(--border-light); padding-top: 12px;">
+                    Site designed by<br>Argajit Sarkar
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Header -->
+        <div class="dash-mobile-header">
+            <button class="dash-menu-toggle" id="menuToggle">☰</button>
+            <span class="text-tag-s">MMI Lab</span>
+            <button class="dash-logout-mobile" id="logoutBtnMobile">↗</button>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="dash-main">
+            <!-- Overview Page -->
+            <div class="dash-page active" id="page-overview"></div>
+            <!-- Stock Registry Page -->
+            <div class="dash-page" id="page-stock"></div>
+            <!-- Documents Page -->
+            <div class="dash-page" id="page-docs"></div>
+
+            <!-- All Scholars Page (PI only) -->
+            <div class="dash-page" id="page-scholars"></div>
+            <!-- My Profile Page -->
+            <div class="dash-page" id="page-profile"></div>
+        </main>
+    </div>
+
+    <script src="js/dashboard-app.js?v=3"></script>
+</body>
+</html>

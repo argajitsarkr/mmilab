@@ -1,0 +1,380 @@
+/* 
+ * MMI Lab — Scholar Profile Page Styles
+ * Uses design tokens from styles.css
+ */
+
+/* ── Profile Hero ── */
+.profile-hero {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: 420px;
+}
+
+.profile-hero-photo {
+    background: var(--color-warm-surface);
+    border: var(--border-light);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-hero-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-hero-info {
+    border: var(--border-light);
+    margin-left: -1px;
+    padding: 48px 40px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.profile-hero-info .role-tag {
+    display: inline-block;
+    padding: 5px 14px;
+    background: var(--brand-orange-glow);
+    color: var(--brand-orange);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    align-self: flex-start;
+}
+
+.profile-hero-info .profile-name {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+}
+
+.profile-hero-info .profile-dept {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.profile-hero-info .profile-university {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+}
+
+/* ── Social Links Bar ── */
+.profile-social {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.profile-social a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border: var(--border-light);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: var(--transition);
+}
+
+.profile-social a:hover {
+    border-color: var(--brand-orange);
+    color: var(--brand-orange);
+}
+
+.profile-social a svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* ── Content Sections ── */
+.profile-section {
+    padding: 60px 0;
+}
+
+.profile-section-header {
+    margin-bottom: 32px;
+}
+
+.profile-section-title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+/* ── About / Research Interests ── */
+.profile-about p {
+    color: var(--color-text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    max-width: 800px;
+}
+
+.research-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.research-tag {
+    display: inline-block;
+    padding: 6px 16px;
+    border: var(--border-light);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    transition: var(--transition);
+    background: white;
+}
+
+.research-tag:hover {
+    border-color: var(--brand-orange);
+    color: var(--brand-orange);
+}
+
+/* ── Timeline (Education & Experience) ── */
+.timeline {
+    position: relative;
+    padding-left: 32px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--color-warm-border);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 36px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--brand-orange);
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px var(--color-warm-border);
+    z-index: 1;
+}
+
+.timeline-year {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-orange);
+    margin-bottom: 6px;
+}
+
+.timeline-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.timeline-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* ── Publication List ── */
+.publication-list {
+    list-style: none;
+    counter-reset: pub;
+}
+
+.publication-item {
+    border: var(--border-light);
+    padding: 24px 28px;
+    background: white;
+    margin-top: -1px;
+    transition: var(--transition);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.publication-item:hover {
+    border-color: var(--brand-orange);
+    z-index: 1;
+    position: relative;
+}
+
+.publication-number {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--brand-orange);
+    min-width: 36px;
+    line-height: 1.3;
+}
+
+.publication-item p {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.publication-item .pub-title {
+    color: var(--color-text);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.publication-item .pub-journal {
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* ── Back Link ── */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: var(--transition);
+    margin-bottom: 12px;
+}
+
+.back-link:hover {
+    color: var(--brand-orange);
+}
+
+.back-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ── Two-column layout for Education + Experience ── */
+.profile-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+
+.profile-col {
+    border: var(--border-light);
+    padding: 40px;
+    background: white;
+}
+
+.profile-col + .profile-col {
+    margin-left: -1px;
+}
+
+.profile-col-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-col-title svg {
+    width: 20px;
+    height: 20px;
+    color: var(--brand-orange);
+}
+
+/* ── View Profile overlay on team cards ── */
+.scholar-card-link {
+    cursor: pointer;
+}
+
+.scholar-card-link .scholar-photo {
+    position: relative;
+}
+
+.scholar-card-link .scholar-photo::after {
+    content: 'VIEW PROFILE →';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.scholar-card-link:hover .scholar-photo::after {
+    opacity: 1;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+    .profile-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-hero-photo {
+        height: 300px;
+    }
+
+    .profile-hero-info {
+        margin-left: 0;
+        margin-top: -1px;
+        padding: 32px 24px;
+    }
+
+    .profile-hero-info .profile-name {
+        font-size: 1.8rem;
+    }
+
+    .profile-two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-col + .profile-col {
+        margin-left: 0;
+        margin-top: -1px;
+    }
+
+    .timeline {
+        padding-left: 28px;
+    }
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research — MMI Lab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .research-block { border: none; padding: 48px; background: var(--brand-orange); color: white; margin-top: -1px; position: relative; transition: var(--transition); }
+        .research-block:hover { background: var(--brand-orange-light); }
+        .research-block::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: rgba(255,255,255,0.4); opacity: 0; transition: var(--transition); }
+        .research-block:hover::before { opacity: 1; }
+        .research-block .dot-tag::before { background: white; }
+        .research-block .text-headline { color: white; }
+        .research-block p, .research-block .dot-tag { color: rgba(255,255,255,0.9); }
+        .research-block ul { margin-top: 24px; padding-left: 20px; color: rgba(255,255,255,0.85); }
+        .research-block li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="nav"><div class="container nav-inner"><a href="index.html" class="nav-logo"><img src="assets/logo.png" alt="MMI Lab"></a><button class="nav-toggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 12 12" fill="none"><path d="M0.75 3H11.25" stroke="currentColor"/><path d="M0.75 6H11.25" stroke="currentColor"/><path d="M0.75 9H11.25" stroke="currentColor"/></svg></button><div class="nav-links"><a href="index.html" class="nav-link text-tag-s">Home</a><a href="research.html" class="nav-link text-tag-s active">Research</a><a href="team.html" class="nav-link text-tag-s">Our Team</a><a href="publications.html" class="nav-link text-tag-s">Publications</a><a href="projects.html" class="nav-link text-tag-s">Projects</a><a href="gallery.html" class="nav-link text-tag-s">Gallery</a><a href="login.html" class="nav-link text-tag-s">Scholar Login</a></div></div></nav>
+    <div class="spacer-nav"></div>
+
+    <section class="hero-dark" style="padding: 80px 0 60px;">
+        <div class="container" style="position: relative; z-index: 1;">
+            <div class="accent-bar" style="margin-bottom: 24px;"></div>
+            <h1 class="text-display">Our Research</h1>
+            <div style="height: 24px;"></div>
+            <p class="text-paragraph-l" style="max-width: 650px;">Tackling antimicrobial resistance through innovative combination therapies, artificial intelligence, and next-generation biological strategies.</p>
+        </div>
+    </section>
+
+    <section class="section-warm">
+        <div class="container">
+            <div class="research-block" id="combination-therapy">
+                <div class="dot-tag text-tag-s" style="margin-bottom: 24px;">Research Area 01</div>
+                <h2 class="text-headline" style="margin-bottom: 16px;">Combination Therapy Against Priority Pathogens</h2>
+                <p class="text-paragraph-l">Harnessing the synergistic power of phytochemicals and conventional antibiotics to combat WHO-priority pathogens. We screen plant-derived bioactive compounds for their ability to potentiate antibiotic efficacy, reverse resistance mechanisms, and reduce minimum inhibitory concentrations against critical drug-resistant bacteria.</p>
+                <ul><li>Synergy screening of phytochemical–antibiotic combinations</li><li>Mechanistic studies on resistance reversal</li><li>In vitro and in vivo efficacy evaluation against ESKAPE pathogens</li></ul>
+            </div>
+            <div class="research-block" id="ai-drug-discovery">
+                <div class="dot-tag text-tag-s" style="margin-bottom: 24px;">Research Area 02</div>
+                <h2 class="text-headline" style="margin-bottom: 16px;">AI-Based Drug Discovery &amp; Repurposing</h2>
+                <p class="text-paragraph-l">Leveraging artificial intelligence and machine learning to accelerate the discovery and repurposing of drugs against WHO-priority pathogens. Our computational pipelines integrate molecular docking, deep learning, and network pharmacology to identify novel therapeutic candidates from existing drug libraries.</p>
+                <ul><li>Virtual screening and molecular docking against resistance targets</li><li>Deep learning models for drug–target interaction prediction</li><li>Repurposing FDA-approved drugs for antimicrobial applications</li></ul>
+            </div>
+            <div class="research-block" id="heavy-metal-resistance">
+                <div class="dot-tag text-tag-s" style="margin-bottom: 24px;">Research Area 03</div>
+                <h2 class="text-headline" style="margin-bottom: 16px;">Heavy Metal Impact on Bacterial Antibiotic Resistance</h2>
+                <p class="text-paragraph-l">Investigating the co-selection pressure of heavy metals on the emergence and propagation of antibiotic resistance in environmental and clinical bacterial isolates. We explore how metal contamination in soil and water ecosystems drives cross-resistance and co-resistance through shared genetic determinants.</p>
+                <ul><li>Co-selection of metal and antibiotic resistance genes</li><li>Environmental surveillance of metal-contaminated sites</li><li>Plasmid-mediated co-transfer of resistance determinants</li></ul>
+            </div>
+            <div class="research-block" id="ai-amr-morphology">
+                <div class="dot-tag text-tag-s" style="margin-bottom: 24px;">Research Area 04</div>
+                <h2 class="text-headline" style="margin-bottom: 16px;">AI-Based AMR Prediction Using Morphology</h2>
+                <p class="text-paragraph-l">Developing AI-powered image analysis pipelines that predict antimicrobial resistance directly from bacterial morphology. By training deep learning models on microscopy images, we aim to enable rapid, culture-free resistance profiling that can dramatically shorten diagnostic turnaround times in clinical settings.</p>
+                <ul><li>Convolutional neural networks for morphological classification</li><li>Rapid phenotypic resistance prediction from microscopy</li><li>Integration with clinical diagnostic workflows</li></ul>
+            </div>
+            <div class="research-block" id="phage-therapy">
+                <div class="dot-tag text-tag-s" style="margin-bottom: 24px;">Research Area 05</div>
+                <h2 class="text-headline" style="margin-bottom: 16px;">Phage Therapy Against Priority Pathogens</h2>
+                <p class="text-paragraph-l">Exploring bacteriophages as a targeted biological weapon against multi-drug-resistant priority pathogens. We isolate, characterize, and engineer lytic phages with high specificity to combat infections where conventional antibiotics have failed, offering a precision alternative for the post-antibiotic era.</p>
+                <ul><li>Isolation and characterization of lytic bacteriophages</li><li>Phage–antibiotic synergy studies</li><li>Phage cocktail design for clinical applications</li></ul>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
+    <script src="js/main.js"></script>
+</body>
+</html>

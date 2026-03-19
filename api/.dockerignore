@@ -1,0 +1,15 @@
+# Don't copy these into the Docker image
+
+node_modules
+npm-debug.log
+
+# Database lives in a Docker volume, not in the image
+db/mmilab.db
+db/mmilab.db-shm
+db/mmilab.db-wal
+
+# Uploads live in a Docker volume, not in the image
+uploads/
+
+.env
+*.log
