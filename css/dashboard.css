@@ -161,6 +161,9 @@
 .doc-meta { font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.5; }
 .doc-actions { display: flex; gap: 8px; margin-top: auto; }
 .doc-search-highlight { background: rgba(209, 90, 43, 0.2); font-weight: 600; padding: 0 2px; }
+.doc-folder-item { transition: background 0.15s; }
+.doc-folder-item:hover { background: #f5f5f5; }
+.doc-folder-item.active { background: var(--brand-orange-glow, #fff3e0); border-left: 3px solid var(--brand-orange, #e65100); font-weight: 600; }
 
 /* ── Mobile ── */
 .dash-mobile-header {

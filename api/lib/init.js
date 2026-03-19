@@ -91,6 +91,8 @@ function initDB() {
 
   // ── Migrations: add columns safely ──
   try { db.exec('ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0'); } catch(e) { /* column already exists */ }
+  try { db.exec('ALTER TABLE documents ADD COLUMN project_id INTEGER REFERENCES projects(id)'); } catch(e) { /* column already exists */ }
+  try { db.exec('ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT ""'); } catch(e) { /* column already exists */ }
 
   // ── One-time: reset all passwords to stronger default and force change ──
   const migrationKey = 'pw_reset_v2';

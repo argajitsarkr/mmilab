@@ -361,159 +361,285 @@
   // ══════════════════════════════════════
   // ── DOCUMENTS PAGE
   // ══════════════════════════════════════
+  // ── Document category & folder definitions ──
+  const DOC_CATEGORIES = [
+    { value: 'Protocol', label: 'Protocol / SOP' },
+    { value: 'Budget', label: 'Budget' },
+    { value: 'Bill', label: 'Bill / Invoice / Receipt' },
+    { value: 'CV', label: 'CV / Resume' },
+    { value: 'Draft', label: 'Draft / Manuscript' },
+    { value: 'Forwarding Letter', label: 'Forwarding Letter' },
+    { value: 'Project Proposal', label: 'Project Proposal' },
+    { value: 'Report', label: 'Report' },
+    { value: 'Thesis', label: 'Thesis / Dissertation' },
+    { value: 'Publication', label: 'Publication / Paper' },
+    { value: 'Certificate', label: 'Certificate' },
+    { value: 'Agreement', label: 'MoU / Agreement' },
+    { value: 'Uncategorized', label: 'Uncategorized' }
+  ];
+
+  const DOC_FOLDERS = [
+    { value: '', label: 'No Folder (General)' },
+    { value: 'DBT Project', label: 'DBT Project' },
+    { value: 'ICMR Project', label: 'ICMR Project' },
+    { value: 'DST Project', label: 'DST Project' },
+    { value: 'SERB Project', label: 'SERB Project' },
+    { value: 'UGC Project', label: 'UGC Project' },
+    { value: 'Lab Admin', label: 'Lab Administration' },
+    { value: 'Personal', label: 'Personal Documents' }
+  ];
+
   async function loadDocs() {
     const el = document.getElementById('page-docs');
+
+    // Fetch folder summary and projects in parallel
+    let folderData = { total: 0, tagCounts: [], projectCounts: [], folderCounts: [] };
+    let projects = [];
+    try {
+      [folderData, projects] = await Promise.all([
+        api('/docs/folders'),
+        api('/projects')
+      ]);
+    } catch(e) { /* continue with defaults */ }
+
+    const catOptions = DOC_CATEGORIES.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+    const folderOptions = DOC_FOLDERS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+    const projectOptions = (projects || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+
     el.innerHTML = `
       <div class="dash-header">
         <h1>Document Repository</h1>
-        <p>Search, upload, and manage lab documents, protocols, and budgets</p>
+        <p>Organize, search, and manage all lab documents by category, project, or folder</p>
       </div>
-      <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
-        <input class="dash-search" id="docSearch" type="text" placeholder="Search inside documents (full-text search)..." style="flex: 1; min-width: 250px;">
-        <select class="dash-select" id="docTagFilter" style="min-width: 150px;">
-          <option value="all">All Categories</option>
-          <option value="Protocol">Protocols</option>
-          <option value="Budget">Budgets</option>
-          <option value="Draft">Drafts</option>
-          <option value="Forwarding Letter">Forwarding Letters</option>
-          <option value="Project Proposal">Project Proposals</option>
-          <option value="Uncategorized">Uncategorized</option>
-        </select>
-        <button class="dash-btn" id="uploadDocBtn">+ Upload Document</button>
+
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Left sidebar: Folder navigation -->
+        <div id="docSidebar" style="min-width: 220px; max-width: 260px; flex-shrink: 0;">
+          <div style="border: var(--border-light); background: white;">
+            <div style="padding: 14px 16px; border-bottom: var(--border-light); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary);">Browse</div>
+
+            <div class="doc-folder-item active" data-filter="all" data-type="all" style="padding: 12px 16px; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; border-bottom: var(--border-light);">
+              <span>All Documents</span>
+              <span style="background: var(--brand-orange); color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">${folderData.total || 0}</span>
+            </div>
+
+            <div style="padding: 10px 16px 6px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary);">By Category</div>
+            ${(folderData.tagCounts || []).map(t => `
+              <div class="doc-folder-item" data-filter="${t.tag}" data-type="tag" style="padding: 8px 16px 8px 24px; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between;">
+                <span>${t.tag}</span>
+                <span style="color: var(--color-text-secondary); font-size: 0.8rem;">${t.count}</span>
+              </div>
+            `).join('')}
+
+            ${(folderData.folderCounts || []).length ? `
+              <div style="padding: 10px 16px 6px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); border-top: var(--border-light); margin-top: 4px;">By Folder</div>
+              ${(folderData.folderCounts || []).map(f => `
+                <div class="doc-folder-item" data-filter="${f.folder}" data-type="folder" style="padding: 8px 16px 8px 24px; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between;">
+                  <span>${f.folder}</span>
+                  <span style="color: var(--color-text-secondary); font-size: 0.8rem;">${f.count}</span>
+                </div>
+              `).join('')}
+            ` : ''}
+
+            ${(folderData.projectCounts || []).length ? `
+              <div style="padding: 10px 16px 6px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); border-top: var(--border-light); margin-top: 4px;">By Project</div>
+              ${(folderData.projectCounts || []).map(p => `
+                <div class="doc-folder-item" data-filter="${p.project_id}" data-type="project" style="padding: 8px 16px 8px 24px; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between;">
+                  <span>${p.project_title || 'Unnamed Project'}</span>
+                  <span style="color: var(--color-text-secondary); font-size: 0.8rem;">${p.count}</span>
+                </div>
+              `).join('')}
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Right content: Search + documents -->
+        <div style="flex: 1; min-width: 0;">
+          <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <input class="dash-search" id="docSearch" type="text" placeholder="Search inside documents (full-text search)..." style="flex: 1; min-width: 200px;">
+            <button class="dash-btn" id="uploadDocBtn">+ Upload Document</button>
+          </div>
+          <div id="docCurrentFilter" style="margin-bottom: 12px; font-size: 0.85rem; color: var(--color-text-secondary);"></div>
+          <div id="docsContainer" class="dash-cards" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+        </div>
       </div>
-      <div id="docsContainer" class="dash-cards" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
     `;
 
+    // Current filter state
+    let currentFilter = { type: 'all', value: 'all' };
     let searchTimeout;
     const searchInput = document.getElementById('docSearch');
-    const tagFilter = document.getElementById('docTagFilter');
 
     async function refreshDocs() {
       const search = searchInput.value;
-      const tag = tagFilter.value;
-      const docs = await api(`/docs?search=${encodeURIComponent(search)}&tag=${encodeURIComponent(tag)}`);
+      let url = `/docs?search=${encodeURIComponent(search)}`;
+      if (currentFilter.type === 'tag') url += `&tag=${encodeURIComponent(currentFilter.value)}`;
+      else if (currentFilter.type === 'folder') url += `&folder=${encodeURIComponent(currentFilter.value)}`;
+      else if (currentFilter.type === 'project') url += `&project_id=${encodeURIComponent(currentFilter.value)}`;
+
+      const docs = await api(url);
       renderDocs(docs, search);
+
+      // Update filter label
+      const filterEl = document.getElementById('docCurrentFilter');
+      if (currentFilter.type === 'all') filterEl.textContent = '';
+      else if (currentFilter.type === 'tag') filterEl.textContent = `Showing: ${currentFilter.value}`;
+      else if (currentFilter.type === 'folder') filterEl.textContent = `Folder: ${currentFilter.value}`;
+      else if (currentFilter.type === 'project') filterEl.textContent = `Project documents`;
     }
 
+    // Sidebar click handlers
+    el.querySelectorAll('.doc-folder-item').forEach(item => {
+      item.addEventListener('click', () => {
+        el.querySelectorAll('.doc-folder-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        currentFilter = { type: item.dataset.type, value: item.dataset.filter };
+        refreshDocs();
+      });
+    });
+
     searchInput.addEventListener('input', () => { clearTimeout(searchTimeout); searchTimeout = setTimeout(refreshDocs, 400); });
-    tagFilter.addEventListener('change', refreshDocs);
-    document.getElementById('uploadDocBtn').addEventListener('click', showUploadDocModal);
-    
+    document.getElementById('uploadDocBtn').addEventListener('click', () => showUploadDocModal(projects));
+
     refreshDocs();
   }
 
   function getFileIcon(mimetype) {
-    if (mimetype.includes('pdf')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
-    if (mimetype.includes('word') || mimetype.includes('document')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
+    if (mimetype.includes('pdf')) return '<svg viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="1.5" style="width:28px;height:28px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
+    if (mimetype.includes('word') || mimetype.includes('document')) return '<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" style="width:28px;height:28px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
+    if (mimetype.includes('image')) return '<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5" style="width:28px;height:28px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
   }
 
   function formatBytes(bytes) {
-      if(bytes == 0) return '0 Bytes';
-      var k = 1024, dm = 2, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    if (bytes == 0) return '0 Bytes';
+    var k = 1024, dm = 2, sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
   function renderDocs(docs, searchPhrase) {
     const el = document.getElementById('docsContainer');
-    if (!docs.length) {
-      el.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No documents found.</p></div>';
+    if (!docs || !docs.length) {
+      el.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No documents found. Upload one to get started.</p></div>';
       return;
     }
-    
-    // Simple frontend highlighting just for the title if search phrase exists
+
     const highlight = (text) => {
-        if (!searchPhrase) return text;
-        const regex = new RegExp(`(${searchPhrase})`, 'gi');
+      if (!searchPhrase) return text;
+      try {
+        const regex = new RegExp(`(${searchPhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
         return text.replace(regex, '<span class="doc-search-highlight">$1</span>');
+      } catch(e) { return text; }
     };
 
     const currentToken = localStorage.getItem('mmilab_token');
 
     el.innerHTML = docs.map(d => `
-      <div class="doc-card">
+      <div class="doc-card" style="display: flex; flex-direction: column; justify-content: space-between;">
         <div>
-          <div class="doc-icon">${getFileIcon(d.mimetype)}</div>
-          <div class="doc-title">${highlight(d.original_name)}</div>
-          <div class="doc-meta">
-            <span class="badge badge-active" style="margin-bottom:8px;">${d.tag}</span><br>
-            Uploaded by <strong>${d.uploader_name}</strong><br>
-            ${new Date(d.upload_date).toLocaleDateString()} • ${formatBytes(d.size)}
-            ${d.is_public ? '<span style="color: #2BA850; margin-left:8px;">Public</span>' : '<span style="color: #D19D2B; margin-left:8px;">Private</span>'}
+          <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+            <div style="flex-shrink: 0;">${getFileIcon(d.mimetype)}</div>
+            <div style="min-width: 0;">
+              <div class="doc-title" style="font-weight: 600; font-size: 0.9rem; word-break: break-word;">${highlight(d.original_name)}</div>
+            </div>
+          </div>
+          <div class="doc-meta" style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.6;">
+            <span class="badge badge-active" style="margin-right: 4px;">${d.tag}</span>
+            ${d.folder ? `<span class="badge" style="background: #e0e7ff; color: #3730a3; margin-right: 4px;">${d.folder}</span>` : ''}
+            ${d.project_title ? `<span class="badge" style="background: #fef3c7; color: #92400e;">${d.project_title}</span>` : ''}<br>
+            Uploaded by <strong>${d.uploader_name || 'Unknown'}</strong><br>
+            ${new Date(d.upload_date).toLocaleDateString()} &bull; ${formatBytes(d.size)}
           </div>
         </div>
-        <div class="doc-actions">
-          <a href="/api/docs/${d.id}/download?token=${currentToken}" target="_blank" class="dash-btn" style="text-decoration: none; flex: 1; text-align: center;">Download</a>
-          ${(d.uploader_id === user.id || user.role === 'pi') ? `<button class="dash-btn-outline" style="padding: 10px;" onclick="window.dashApp.deleteDoc(${d.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg></button>` : ''}
+        <div class="doc-actions" style="display: flex; gap: 8px; margin-top: 12px;">
+          <a href="/api/docs/${d.id}/download?token=${currentToken}" target="_blank" class="dash-btn" style="text-decoration: none; flex: 1; text-align: center; font-size: 0.85rem;">Download</a>
+          ${(d.uploader_id === user.id || user.role === 'pi') ? `<button class="dash-btn-outline" style="padding: 8px 10px;" onclick="window.dashApp.deleteDoc(${d.id})" title="Delete document"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg></button>` : ''}
         </div>
       </div>
     `).join('');
   }
 
-  function showUploadDocModal() {
+  function showUploadDocModal(projects) {
+    const catOptions = DOC_CATEGORIES.map(c => `<option value="${c.value}" ${c.value === 'Uncategorized' ? 'selected' : ''}>${c.label}</option>`).join('');
+    const folderOptions = DOC_FOLDERS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+    const projectOptions = (projects || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+
     showModal('Upload Document', `
       <form id="uploadDocForm">
-        <p style="margin-bottom: 20px; color: var(--color-text-secondary); font-size: 0.85rem;">Upload PDFs, Word Documents, or Text files. They will be scanned and fully indexed for searching.</p>
-        
+        <p style="margin-bottom: 16px; color: var(--color-text-secondary); font-size: 0.85rem;">Upload PDFs, Word Documents, Images, or Text files. They will be scanned and fully indexed for searching.</p>
+
         <div class="dash-form-group">
           <label class="dash-form-label">Document File *</label>
-          <input type="file" id="docFile" class="dash-input" accept=".pdf,.doc,.docx,.txt" required>
+          <input type="file" id="docFile" class="dash-input" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xls,.xlsx,.csv" required>
         </div>
-        
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="dash-form-group">
+            <label class="dash-form-label">Category *</label>
+            <select class="dash-input" id="docTag">${catOptions}</select>
+          </div>
+          <div class="dash-form-group">
+            <label class="dash-form-label">Folder</label>
+            <select class="dash-input" id="docFolder">${folderOptions}</select>
+          </div>
+        </div>
+
+        ${projectOptions ? `
         <div class="dash-form-group">
-          <label class="dash-form-label">Category / Tag *</label>
-          <select class="dash-input" id="docTag">
-              <option value="Protocol">Protocol</option>
-              <option value="Budget">Budget</option>
-              <option value="Draft">Draft</option>
-              <option value="Forwarding Letter">Forwarding Letter</option>
-              <option value="Project Proposal">Project Proposal</option>
-              <option value="Uncategorized" selected>Uncategorized</option>
+          <label class="dash-form-label">Link to Project (optional)</label>
+          <select class="dash-input" id="docProject">
+            <option value="">-- None --</option>
+            ${projectOptions}
           </select>
         </div>
-        
+        ` : ''}
+
         <div class="dash-form-group">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
             <input type="checkbox" id="docIsPublic" checked> Make available to all scholars in the lab
           </label>
         </div>
-        
-        <div id="uploadStatus" style="margin-top: 16px; font-weight: 600; color: var(--brand-orange); display: none;">Uploading and indexing...</div>
+
+        <div id="uploadStatus" style="margin-top: 12px; font-weight: 600; color: var(--brand-orange); display: none;">Uploading and indexing...</div>
       </form>
     `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
-       <button class="dash-btn" onclick="document.getElementById('uploadDocForm').dispatchEvent(new Event('submit'))">Upload & Process</button>`);
-       
+       <button class="dash-btn" onclick="document.getElementById('uploadDocForm').dispatchEvent(new Event('submit'))">Upload & Index</button>`);
+
     document.getElementById('uploadDocForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const fileInput = document.getElementById('docFile');
-        if (!fileInput.files.length) return alert('Please select a file.');
-        
-        document.getElementById('uploadStatus').style.display = 'block';
-        
-        const formData = new FormData();
-        formData.append('document', fileInput.files[0]);
-        formData.append('tag', document.getElementById('docTag').value);
-        formData.append('isPublic', document.getElementById('docIsPublic').checked);
-        
-        try {
-            const res = await fetch('/api/docs', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            
-            if (!res.ok) throw new Error(await res.text());
-            
-            closeModal();
-            loadDocs();
-        } catch (err) {
-            alert('Upload failed: ' + err.message);
-            document.getElementById('uploadStatus').style.display = 'none';
+      e.preventDefault();
+      const fileInput = document.getElementById('docFile');
+      if (!fileInput.files.length) return alert('Please select a file.');
+
+      document.getElementById('uploadStatus').style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('document', fileInput.files[0]);
+      formData.append('tag', document.getElementById('docTag').value);
+      formData.append('folder', document.getElementById('docFolder').value);
+      formData.append('isPublic', document.getElementById('docIsPublic').checked);
+      const projSelect = document.getElementById('docProject');
+      if (projSelect && projSelect.value) formData.append('project_id', projSelect.value);
+
+      try {
+        const res = await fetch('/api/docs', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(errData.error || 'Upload failed');
         }
+
+        closeModal();
+        loadDocs();
+      } catch (err) {
+        alert('Upload failed: ' + err.message);
+        document.getElementById('uploadStatus').style.display = 'none';
+      }
     });
   }
-
-  // deleteDoc is now on the main window.dashApp object below
 
   // ══════════════════════════════════════
   // ── PROJECTS PAGE
@@ -832,9 +958,17 @@
     },
 
     async deleteDoc(id) {
-      if (!confirm('Are you sure you want to permanently delete this document?')) return;
-      await api(`/docs/${id}`, { method: 'DELETE' });
-      loadDocs();
+      if (!confirm('Are you sure you want to permanently delete this document?\n\nThis action cannot be undone.')) return;
+      try {
+        const result = await api(`/docs/${id}`, { method: 'DELETE' });
+        if (result && result.error) {
+          alert('Delete failed: ' + result.error);
+          return;
+        }
+        loadDocs();
+      } catch(e) {
+        alert('Delete failed: ' + (e.message || 'Unknown error'));
+      }
     },
 
     async addProject() {

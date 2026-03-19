@@ -45,33 +45,43 @@ async function extractText(filePath, mimetype) {
 // ── GET /api/docs ── List & Search
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
-  const { search, tag } = req.query;
+  const { search, tag, project_id, folder } = req.query;
 
   let query = `
-    SELECT d.*, u.name as uploader_name 
-    FROM documents d 
+    SELECT d.*, u.name as uploader_name, p.title as project_title
+    FROM documents d
     LEFT JOIN users u ON d.uploader_id = u.id
+    LEFT JOIN projects p ON d.project_id = p.id
   `;
   const conditions = [];
   const params = [];
 
-  // Filter by tag if needed (not strictly necessary but useful)
   if (tag && tag !== 'all') {
     conditions.push('d.tag = ?');
     params.push(tag);
   }
-  
+
+  if (project_id && project_id !== 'all') {
+    conditions.push('d.project_id = ?');
+    params.push(parseInt(project_id));
+  }
+
+  if (folder && folder !== 'all') {
+    conditions.push('d.folder = ?');
+    params.push(folder);
+  }
+
   if (search) {
-      if (conditions.length) {
-          query += ` WHERE ${conditions.join(' AND ')} AND d.id IN (SELECT document_id FROM document_search WHERE document_search MATCH ?)`;
-      } else {
-          query += ` WHERE d.id IN (SELECT document_id FROM document_search WHERE document_search MATCH ?)`;
-      }
-      // FTS5 syntax requires escaping double quotes and wrapping the term
-      const safeSearch = search.replace(/"/g, '""');
-      params.push(`"${safeSearch}"*`); 
+    const searchCondition = `d.id IN (SELECT document_id FROM document_search WHERE document_search MATCH ?)`;
+    if (conditions.length) {
+      query += ` WHERE ${conditions.join(' AND ')} AND ${searchCondition}`;
+    } else {
+      query += ` WHERE ${searchCondition}`;
+    }
+    const safeSearch = search.replace(/"/g, '""');
+    params.push(`"${safeSearch}"*`);
   } else if (conditions.length) {
-      query += ` WHERE ${conditions.join(' AND ')}`;
+    query += ` WHERE ${conditions.join(' AND ')}`;
   }
 
   query += ` ORDER BY d.upload_date DESC`;
@@ -80,32 +90,63 @@ router.get('/', (req, res) => {
   res.json(docs);
 });
 
+// ── GET /api/docs/folders ── Get folder/category summary with counts
+router.get('/folders', (req, res) => {
+  const db = req.app.locals.db;
+
+  // Get counts by tag
+  const tagCounts = db.prepare(`
+    SELECT tag, COUNT(*) as count FROM documents GROUP BY tag ORDER BY tag
+  `).all();
+
+  // Get counts by project
+  const projectCounts = db.prepare(`
+    SELECT d.project_id, p.title as project_title, COUNT(*) as count
+    FROM documents d
+    LEFT JOIN projects p ON d.project_id = p.id
+    WHERE d.project_id IS NOT NULL
+    GROUP BY d.project_id
+    ORDER BY p.title
+  `).all();
+
+  // Get counts by folder
+  const folderCounts = db.prepare(`
+    SELECT folder, COUNT(*) as count FROM documents WHERE folder != '' AND folder IS NOT NULL GROUP BY folder ORDER BY folder
+  `).all();
+
+  const total = db.prepare('SELECT COUNT(*) as count FROM documents').get().count;
+
+  res.json({ total, tagCounts, projectCounts, folderCounts });
+});
+
 // ── POST /api/docs ── Upload new document
 router.post('/', upload.single('document'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const db = req.app.locals.db;
-  
-  const { tag, isPublic } = req.body;
+
+  const { tag, isPublic, project_id, folder } = req.body;
   const finalTag = tag || 'Uncategorized';
   const finalIsPublic = isPublic === 'true' || isPublic === true ? 1 : 0;
+  const finalProjectId = project_id && project_id !== '' ? parseInt(project_id) : null;
+  const finalFolder = folder || '';
 
   // 1. Insert into main table
   const result = db.prepare(`
-    INSERT INTO documents (filename, original_name, mimetype, size, uploader_id, tag, is_public) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, req.user.id, finalTag, finalIsPublic);
+    INSERT INTO documents (filename, original_name, mimetype, size, uploader_id, tag, is_public, project_id, folder)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, req.user.id, finalTag, finalIsPublic, finalProjectId, finalFolder);
 
   const docId = result.lastInsertRowid;
 
   // 2. Extract text and index FTS5
   let textContent = await extractText(req.file.path, req.file.mimetype);
-  
-  // Also index the filename and tag so they are searchable
-  textContent = `${req.file.originalname} \n ${finalTag} \n ${textContent}`;
+
+  // Also index the filename, tag, and folder so they are searchable
+  textContent = `${req.file.originalname} \n ${finalTag} \n ${finalFolder} \n ${textContent}`;
 
   db.prepare(`INSERT INTO document_search (document_id, content) VALUES (?, ?)`).run(docId, textContent);
 
-  const newDoc = db.prepare(`SELECT d.*, u.name as uploader_name FROM documents d LEFT JOIN users u ON d.uploader_id = u.id WHERE d.id = ?`).get(docId);
+  const newDoc = db.prepare(`SELECT d.*, u.name as uploader_name, p.title as project_title FROM documents d LEFT JOIN users u ON d.uploader_id = u.id LEFT JOIN projects p ON d.project_id = p.id WHERE d.id = ?`).get(docId);
   res.status(201).json(newDoc);
 });
 
@@ -113,10 +154,9 @@ router.post('/', upload.single('document'), async (req, res) => {
 router.get('/:id/download', (req, res) => {
   const db = req.app.locals.db;
   const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
-  
+
   if (!doc) return res.status(404).json({ error: 'Document not found' });
-  
-  // Just allow all logged in users to download everything (as per instructions: "let scholars see each others dock... and lets the files be downloadable")
+
   const file = path.join('/app/uploads', doc.filename);
   res.download(file, doc.original_name);
 });
@@ -125,9 +165,9 @@ router.get('/:id/download', (req, res) => {
 router.delete('/:id', (req, res) => {
   const db = req.app.locals.db;
   const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
-  
+
   if (!doc) return res.status(404).json({ error: 'Document not found' });
-  
+
   // Access control: only uploader or PI can delete
   if (doc.uploader_id !== req.user.id && req.user.role !== 'pi') {
     return res.status(403).json({ error: 'Unauthorized to delete this document' });
