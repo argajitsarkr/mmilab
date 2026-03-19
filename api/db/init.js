@@ -18,6 +18,7 @@ function initDB() {
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('pi','scholar')),
       photo_url TEXT DEFAULT '',
+      must_change_password INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -88,12 +89,26 @@ function initDB() {
     );
   `);
 
+  // ── Migrations: add columns safely ──
+  try { db.exec('ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0'); } catch(e) { /* column already exists */ }
+
+  // ── One-time: reset all passwords to stronger default and force change ──
+  const migrationKey = 'pw_reset_v1';
+  const migrationDone = (() => { try { db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)"); return db.prepare("SELECT key FROM _migrations WHERE key = ?").get(migrationKey); } catch(e) { return null; } })();
+  if (!migrationDone) {
+    console.log('Resetting all user passwords to stronger default...');
+    const strongHash = bcrypt.hashSync('MMI@Tripura2026#', 10);
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1').run(strongHash);
+    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(migrationKey);
+    console.log('All passwords reset. Users will be forced to change on next login.');
+  }
+
   // ── Seed Users if empty ──
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
     console.log('Seeding default users...');
-    const hash = bcrypt.hashSync('mmilab2026', 10);
-    const insertUser = db.prepare('INSERT INTO users (name, email, password_hash, role, photo_url) VALUES (?, ?, ?, ?, ?)');
+    const hash = bcrypt.hashSync('MMI@Tripura2026#', 10);
+    const insertUser = db.prepare('INSERT INTO users (name, email, password_hash, role, photo_url, must_change_password) VALUES (?, ?, ?, ?, ?, 1)');
     const insertProfile = db.prepare('INSERT INTO scholar_profiles (user_id, enrollment_date, research_topic) VALUES (?, ?, ?)');
 
     const users = [

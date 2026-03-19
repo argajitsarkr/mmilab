@@ -86,6 +86,11 @@
 
                 localStorage.setItem('mmilab_token', data.token);
                 localStorage.setItem('mmilab_user', JSON.stringify(data.user));
+
+                // Force password change on first login
+                if (data.must_change_password) {
+                    localStorage.setItem('mmilab_force_pw', '1');
+                }
                 window.location.href = 'dashboard.html';
             } catch (err) {
                 errorEl.textContent = err.message;

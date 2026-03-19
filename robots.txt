@@ -1,0 +1,11 @@
+# MMI Lab — Molecular Biology & Bioinformatics, Tripura University
+User-agent: *
+Allow: /
+
+# Block private/dashboard pages from search engines
+Disallow: /dashboard.html
+Disallow: /login.html
+Disallow: /api/
+
+# Sitemap location (update domain when DNS is configured)
+Sitemap: https://mmilab.tripurauniv.ac.in/sitemap.xml

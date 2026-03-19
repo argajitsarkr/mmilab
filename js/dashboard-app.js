@@ -11,6 +11,53 @@
   document.getElementById('userName').textContent = user.name;
   document.getElementById('userRole').textContent = user.role === 'pi' ? 'Principal Investigator' : 'PhD Scholar';
 
+  // ── Force password change on first login ──
+  if (localStorage.getItem('mmilab_force_pw') === '1') {
+    document.addEventListener('DOMContentLoaded', showForcePasswordModal);
+    if (document.readyState !== 'loading') showForcePasswordModal();
+  }
+  function showForcePasswordModal() {
+    let overlay = document.querySelector('.force-pw-overlay');
+    if (overlay) return; // already showing
+    overlay = document.createElement('div');
+    overlay.className = 'force-pw-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:var(--color-dark-surface,#1a1a1a);border:1px solid var(--brand-orange,#e65100);padding:40px;max-width:420px;width:90%;">
+        <h2 style="margin:0 0 8px;color:var(--brand-orange,#e65100);font-size:1.1rem;">Change Your Password</h2>
+        <p style="color:#aaa;font-size:0.85rem;margin:0 0 24px;">You must set a new personal password before continuing. The default password is no longer valid after first login.</p>
+        <input type="password" id="forcePwNew" placeholder="New password (min 8 chars)" style="width:100%;padding:12px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #333;font-size:0.9rem;">
+        <input type="password" id="forcePwConfirm" placeholder="Confirm new password" style="width:100%;padding:12px;margin-bottom:16px;background:#111;color:#fff;border:1px solid #333;font-size:0.9rem;">
+        <div id="forcePwError" style="color:#f87171;font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <button id="forcePwBtn" style="width:100%;padding:12px;background:var(--brand-orange,#e65100);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:0.9rem;">Set New Password</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById('forcePwBtn').addEventListener('click', async () => {
+      const pw = document.getElementById('forcePwNew').value;
+      const pw2 = document.getElementById('forcePwConfirm').value;
+      const errEl = document.getElementById('forcePwError');
+      errEl.style.display = 'none';
+      if (pw.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+      if (pw !== pw2) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+      try {
+        const res = await fetch('/api/auth/force-change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ newPassword: pw })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed');
+        localStorage.removeItem('mmilab_force_pw');
+        overlay.remove();
+        alert('Password changed successfully! Welcome to the dashboard.');
+      } catch (e) {
+        errEl.textContent = e.message || 'Error changing password. Try again.';
+        errEl.style.display = 'block';
+      }
+    });
+  }
+
   // ── API Helper ──
   async function api(endpoint, options = {}) {
     const res = await fetch(`${API}${endpoint}`, {

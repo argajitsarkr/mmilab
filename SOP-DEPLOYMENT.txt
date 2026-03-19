@@ -1,0 +1,203 @@
+================================================================
+  MMI Lab — Standard Operating Procedure (SOP)
+  Site Deployment & Update Guide
+  Last updated: March 2026
+================================================================
+
+TABLE OF CONTENTS
+  1. Architecture Overview
+  2. Everyday Update Workflow (Laptop → Server)
+  3. First-Time Domain & SSL Setup
+  4. Google Search Console Setup
+  5. User Credentials
+  6. Troubleshooting
+
+================================================================
+1. ARCHITECTURE OVERVIEW
+================================================================
+
+  Laptop (Windows)     →  GitHub (public repo)  →  Server (Ubuntu + Docker)
+  Develop & commit         Central storage          Pulls & runs containers
+
+  Server runs TWO Docker containers:
+    mmilab-nginx  — Serves static HTML/CSS/JS + proxies /api/ requests
+    mmilab-api    — Node.js backend + SQLite database
+
+  Persistent data (survives container rebuilds):
+    mmilab-db volume       → SQLite database
+    mmilab-uploads volume  → Uploaded documents
+
+================================================================
+2. EVERYDAY UPDATE WORKFLOW
+================================================================
+
+  STEP 1: Make changes on your laptop
+  ------------------------------------
+    Open project folder: C:\Users\Arghya\Downloads\mmilab
+    Edit HTML, CSS, JS, or API files as needed.
+
+  STEP 2: Commit and push to GitHub
+  ------------------------------------
+    Open terminal in the mmilab folder:
+
+      git add .
+      git commit -m "describe your change"
+      git push
+
+  STEP 3: Deploy to server (via AnyDesk)
+  ------------------------------------
+    Open AnyDesk → connect to PowerEdge R730 server.
+    Open a terminal on the server and run:
+
+      cd ~/Desktop/mmilab
+      ./deploy.sh
+
+    That's it! The deploy.sh script does:
+      - git pull (download latest code)
+      - docker compose up --build -d (rebuild & restart containers)
+
+  STEP 4: Verify
+  ------------------------------------
+    On the server, run:
+      docker compose ps           # Both containers should show "Up"
+      curl http://localhost:8080   # Should return HTML
+
+    Or open browser: http://SERVER_IP:8080
+
+================================================================
+3. FIRST-TIME DOMAIN & SSL SETUP
+================================================================
+
+  You have two domain options:
+
+  OPTION A: University subdomain (RECOMMENDED)
+  -----------------------------------------------
+    Request from Tripura University IT:
+      "Please create an A record for mmilab.tripurauniv.ac.in
+       pointing to SERVER_IP_ADDRESS"
+
+    This gives you: mmilab.tripurauniv.ac.in
+    It's free, looks professional, and shows institutional affiliation.
+
+  OPTION B: Custom domain from Hostinger
+  -----------------------------------------------
+    Buy a domain (e.g., mmilab.in or mmilab-tripura.com)
+    In Hostinger DNS settings, add:
+      Type: A
+      Name: @
+      Value: SERVER_IP_ADDRESS
+      TTL: 3600
+
+  AFTER DNS IS POINTING TO YOUR SERVER:
+  -----------------------------------------------
+
+    a) Install certbot on the server:
+       sudo apt update
+       sudo apt install certbot
+
+    b) Stop nginx temporarily:
+       cd ~/Desktop/mmilab
+       docker compose down
+
+    c) Get SSL certificate:
+       sudo certbot certonly --standalone -d mmilab.tripurauniv.ac.in
+
+       (Replace domain name if using Hostinger domain)
+
+    d) Update nginx/ssl.conf:
+       Replace "mmilab.tripurauniv.ac.in" with your actual domain.
+
+    e) Start with SSL:
+       docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
+
+    f) Verify: Open https://mmilab.tripurauniv.ac.in in browser.
+
+  CERTIFICATE AUTO-RENEWAL:
+  -----------------------------------------------
+    Add a cron job on the server:
+      sudo crontab -e
+
+    Add this line:
+      0 3 1 * * certbot renew --quiet && cd ~/Desktop/mmilab && docker compose -f docker-compose.yml -f docker-compose.ssl.yml restart nginx
+
+    This renews certificates monthly at 3 AM.
+
+================================================================
+4. GOOGLE SEARCH CONSOLE SETUP
+================================================================
+
+  a) Go to: https://search.google.com/search-console
+  b) Click "Add Property"
+  c) Choose "URL prefix" and enter: https://mmilab.tripurauniv.ac.in
+  d) Verify ownership using one of these methods:
+     - HTML file: Download the verification file, place it in the
+       mmilab root folder, commit, push, deploy.
+     - DNS TXT record: Ask university IT to add the TXT record.
+  e) After verification:
+     - Go to Sitemaps → Add: https://mmilab.tripurauniv.ac.in/sitemap.xml
+     - Click "Request Indexing" on your homepage URL
+  f) Google will start crawling within 1-3 days.
+
+  ALSO RECOMMENDED:
+    - Create a Google Scholar profile for Dr. Bhattacharjee
+    - Link lab publications to the profile
+    - Submit the site to Bing Webmaster Tools as well
+
+================================================================
+5. USER CREDENTIALS
+================================================================
+
+  NEW DEFAULT PASSWORD:  MMI@Tripura2026#
+
+  All users will be FORCED to change their password on first login.
+  The forced password change modal cannot be dismissed — they must
+  set a personal password (minimum 8 characters) before accessing
+  the dashboard.
+
+  USER LIST:
+    Dr. Surajit Bhattacharjee  sbhattacharjee@gmail.com      (PI)
+    Mr. Suman Paul             sumanpaul93udp@gmail.com       (Scholar)
+    Mr. Argajit Sarkar         argajit05@gmail.com            (Scholar)
+    Mr. Debajyoti Datta        debajyotidatta14@gmail.com     (Scholar)
+    Ms. Moumita Debnath        iammou2001@gmail.com           (Scholar)
+    Ms. Barsha Ghosh           barshaghosh5023@gmail.com      (Scholar)
+    Ms. Diptani Saha           diptani24@gmail.com            (Scholar)
+    Ms. Sanchari Pal           thesanchari@gmail.com          (Scholar)
+
+  PI CAN RESET PASSWORDS:
+    The PI (Dr. Bhattacharjee) can reset any user's password
+    via the API. The user will be forced to change it again
+    on their next login.
+
+================================================================
+6. TROUBLESHOOTING
+================================================================
+
+  SITE NOT LOADING?
+    docker compose ps            # Check container status
+    docker compose logs nginx    # Check nginx errors
+    docker compose logs api      # Check API errors
+
+  API RETURNING ERRORS?
+    docker compose logs api --tail 50
+
+  DATABASE ISSUES?
+    The SQLite database lives in a Docker volume.
+    It persists across rebuilds. To see where:
+      docker volume inspect mmilab_mmilab-db
+
+  NEED TO RESET EVERYTHING (DESTRUCTIVE)?
+    docker compose down -v       # Removes volumes too!
+    docker compose up --build -d # Fresh start, new DB
+
+  CONTAINER WON'T START?
+    docker compose down
+    docker compose up --build -d
+
+  PORT CONFLICT?
+    Edit .env file: HOST_PORT=9090  (or any free port)
+    docker compose up -d
+
+================================================================
+  End of SOP — MMI Lab, Tripura University
+================================================================

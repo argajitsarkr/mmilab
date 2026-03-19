@@ -43,7 +43,8 @@ router.post('/login', (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, photo_url: user.photo_url }
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, photo_url: user.photo_url },
+    must_change_password: !!user.must_change_password
   });
 });
 
@@ -60,7 +61,7 @@ router.post('/change-password', authMiddleware, (req, res) => {
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
   const hash = bcrypt.hashSync(newPassword, 10);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.user.id);
   res.json({ message: 'Password changed successfully' });
 });
 
@@ -76,6 +77,35 @@ router.get('/users', authMiddleware, piOnly, (req, res) => {
   const db = req.app.locals.db;
   const users = db.prepare('SELECT id, name, email, role, photo_url, created_at FROM users ORDER BY role DESC, name').all();
   res.json(users);
+});
+
+// ── POST /api/auth/force-change-password (first-login forced change) ──
+router.post('/force-change-password', authMiddleware, (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const db = req.app.locals.db;
+  const user = db.prepare('SELECT must_change_password FROM users WHERE id = ?').get(req.user.id);
+  if (!user || !user.must_change_password) return res.status(400).json({ error: 'Password change not required' });
+
+  const hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.user.id);
+  res.json({ message: 'Password changed successfully' });
+});
+
+// ── POST /api/auth/reset-password (PI only — reset a user's password) ──
+router.post('/reset-password', authMiddleware, piOnly, (req, res) => {
+  const { userId, newPassword } = req.body;
+  if (!userId || !newPassword) return res.status(400).json({ error: 'userId and newPassword required' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const db = req.app.locals.db;
+  const target = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  const hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(hash, userId);
+  res.json({ message: 'Password reset. User will be prompted to change it on next login.' });
 });
 
 module.exports = router;

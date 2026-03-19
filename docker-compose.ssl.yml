@@ -1,0 +1,19 @@
+# ═══════════════════════════════════════════════════════════════
+# MMI Lab — SSL Override for docker-compose
+# ═══════════════════════════════════════════════════════════════
+# Usage (AFTER obtaining SSL certs):
+#   docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
+#
+# This overrides nginx to use ssl.conf and exposes ports 80+443.
+# ═══════════════════════════════════════════════════════════════
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - .:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
