@@ -35,6 +35,19 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── Cloudflare Tunnel: Public HTTPS access without a domain ──
+  # To activate: set TUNNEL_TOKEN in .env, then: docker compose up -d
+  # If TUNNEL_TOKEN is empty, this container exits silently — no harm done.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: mmilab-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
 volumes:
   mmilab-db:
     driver: local

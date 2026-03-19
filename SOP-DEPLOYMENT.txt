@@ -7,6 +7,7 @@
 TABLE OF CONTENTS
   1. Architecture Overview
   2. Everyday Update Workflow (Laptop → Server)
+  2b. Cloudflare Tunnel Setup (Public HTTPS URL)
   3. First-Time Domain & SSL Setup
   4. Google Search Console Setup
   5. User Credentials
@@ -19,9 +20,10 @@ TABLE OF CONTENTS
   Laptop (Windows)     →  GitHub (public repo)  →  Server (Ubuntu + Docker)
   Develop & commit         Central storage          Pulls & runs containers
 
-  Server runs TWO Docker containers:
-    mmilab-nginx  — Serves static HTML/CSS/JS + proxies /api/ requests
-    mmilab-api    — Node.js backend + SQLite database
+  Server runs THREE Docker containers:
+    mmilab-nginx   — Serves static HTML/CSS/JS + proxies /api/ requests
+    mmilab-api     — Node.js backend + SQLite database
+    mmilab-tunnel  — Cloudflare Tunnel (public HTTPS URL, no domain needed)
 
   Persistent data (survives container rebuilds):
     mmilab-db volume       → SQLite database
@@ -63,6 +65,61 @@ TABLE OF CONTENTS
       curl http://localhost:8080   # Should return HTML
 
     Or open browser: http://SERVER_IP:8080
+
+================================================================
+2b. CLOUDFLARE TUNNEL SETUP (Public HTTPS URL)
+================================================================
+
+  This gives your site a public URL like:
+    https://mmilab-tripura.YOUR-SUBDOMAIN.cfargotunnel.com
+  or a custom name you choose. Free, automatic HTTPS, works
+  behind any firewall — no port forwarding needed.
+
+  ONE-TIME SETUP (do this once on the server):
+  -----------------------------------------------
+
+    a) Go to: https://one.dash.cloudflare.com
+       Sign up for a FREE Cloudflare account (use lab email).
+
+    b) In the dashboard, go to:
+       Networks → Tunnels → Create a tunnel
+
+    c) Choose "Cloudflared" connector type.
+       Name your tunnel: "mmilab"
+
+    d) On the "Install connector" step:
+       - DON'T install anything manually
+       - Just COPY the tunnel token (a long string starting with "ey...")
+       - It's shown in the install command after --token
+
+    e) On the "Route traffic" step:
+       - Subdomain: mmilab (or whatever you want)
+       - Domain: select from your Cloudflare domains, OR
+         use the free *.cfargotunnel.com option
+       - Service: http://nginx:80
+       - Save the tunnel
+
+    f) On the server, add the token to .env:
+       cd ~/Desktop/mmilab
+       nano .env
+
+       Add this line (paste YOUR actual token):
+       TUNNEL_TOKEN=eyJhIjoiYWJjZGVmMTIz...your-long-token...
+
+    g) Restart:
+       docker compose up -d
+
+    h) The tunnel container starts and your site is now PUBLIC at
+       the URL you configured in step (e).
+       Share this URL with your lab members!
+
+  NOTES:
+    - The tunnel survives server reboots (restart: unless-stopped)
+    - If the token is missing/invalid, only the tunnel container
+      fails — nginx and api still work on localhost:8080
+    - When you get a real domain later, you can route the tunnel
+      to your custom domain in the Cloudflare dashboard
+    - Free tier supports unlimited bandwidth
 
 ================================================================
 3. FIRST-TIME DOMAIN & SSL SETUP
