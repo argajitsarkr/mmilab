@@ -97,23 +97,47 @@ function initDB() {
   // ── Migrations table ──
   db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)");
 
-  // ── One-time: reset all passwords to stronger default and force change ──
-  const migrationKey = 'pw_reset_v3';
-  const migrationDone = db.prepare("SELECT key FROM _migrations WHERE key = ?").get(migrationKey);
-  if (!migrationDone) {
-    console.log('MIGRATION: Resetting ALL user passwords to MMI@Tripura2026# ...');
-    const strongHash = bcrypt.hashSync('MMI@Tripura2026#', 10);
-    const changes = db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1').run(strongHash);
-    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(migrationKey);
-    console.log(`MIGRATION DONE: ${changes.changes} users reset. They will be forced to change password on next login.`);
+  // ── One-time: set individual permanent passwords from .env (runs once) ──
+  // Passwords are stored ONLY in .env (gitignored), never in source code.
+  // Format in .env: USER_PASSWORDS=email1:pass1,email2:pass2,...
+  const pwMigration = 'individual_passwords_v2';
+  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(pwMigration)) {
+    const pwEnv = process.env.USER_PASSWORDS || '';
+    if (pwEnv) {
+      console.log('MIGRATION: Setting individual passwords from .env ...');
+      const updatePw = db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE email = ?');
+      const setPasswords = db.transaction(() => {
+        for (const entry of pwEnv.split(',')) {
+          const [email, pw] = entry.trim().split(':');
+          if (email && pw) {
+            updatePw.run(bcrypt.hashSync(pw, 10), email);
+            console.log(`  ✓ Password set for ${email}`);
+          }
+        }
+      });
+      setPasswords();
+      db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(pwMigration);
+      console.log('MIGRATION DONE: Individual passwords set. No forced reset.');
+    } else {
+      console.log('SKIP: USER_PASSWORDS not found in .env — passwords unchanged.');
+    }
   }
 
   // ── Seed Users if empty ──
+  // Passwords come from USER_PASSWORDS in .env (gitignored). Falls back to 'ChangeMe@2026'.
+  // Database persists on Docker volume — seed only runs on first-ever launch.
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
     console.log('Seeding default users...');
-    const hash = bcrypt.hashSync('MMI@Tripura2026#', 10);
-    const insertUser = db.prepare('INSERT INTO users (name, email, password_hash, role, photo_url, must_change_password) VALUES (?, ?, ?, ?, ?, 1)');
+    // Build password lookup from .env
+    const pwLookup = {};
+    for (const entry of (process.env.USER_PASSWORDS || '').split(',')) {
+      const [email, pw] = entry.trim().split(':');
+      if (email && pw) pwLookup[email] = pw;
+    }
+    const fallbackPw = 'ChangeMe@2026';
+
+    const insertUser = db.prepare('INSERT INTO users (name, email, password_hash, role, photo_url, must_change_password) VALUES (?, ?, ?, ?, ?, 0)');
     const insertProfile = db.prepare('INSERT INTO scholar_profiles (user_id, enrollment_date, research_topic) VALUES (?, ?, ?)');
 
     const users = [
@@ -129,6 +153,8 @@ function initDB() {
 
     const insertMany = db.transaction(() => {
       for (const u of users) {
+        const pw = pwLookup[u.email] || fallbackPw;
+        const hash = bcrypt.hashSync(pw, 10);
         const result = insertUser.run(u.name, u.email, hash, u.role, u.photo);
         if (u.role === 'scholar') {
           insertProfile.run(result.lastInsertRowid, '', '');

@@ -21,8 +21,9 @@ services:
     container_name: mmilab-api
     environment:
       - PORT=3500
-      - JWT_SECRET=${JWT_SECRET}    # Set in .env file — never hardcode this
+      - JWT_SECRET=${JWT_SECRET}          # Set in .env file — never hardcode this
       - NODE_ENV=production
+      - USER_PASSWORDS=${USER_PASSWORDS}  # Individual passwords — set in .env, never in code
     volumes:
       - mmilab-db:/app/db           # SQLite database (persistent across restarts)
       - mmilab-uploads:/app/uploads # Uploaded documents (persistent across restarts)
