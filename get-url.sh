@@ -3,7 +3,7 @@
 echo "──────────────────────────────────────"
 echo "  MMI Lab — Current Public URL"
 echo "──────────────────────────────────────"
-URL=$(docker logs mmilab-tunnel 2>&1 | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1)
+URL=$(docker logs mmilab-tunnel 2>&1 | grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' | grep -v 'api\.trycloudflare' | tail -1)
 if [ -z "$URL" ]; then
   echo "  Tunnel not running. Start with:"
   echo "  docker compose up -d"
