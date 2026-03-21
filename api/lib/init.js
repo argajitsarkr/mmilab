@@ -120,12 +120,33 @@ function initDB() {
   // ── Migrations table ──
   db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)");
 
-  // ── Rename -80 Plate Box → 96-Well Plate ──
-  const renameMigration = 'rename_80plate_to_96well';
+  // ── Remove CHECK constraint on item_type + rename -80 Plate Box → 96-Well Plate ──
+  const renameMigration = 'rebuild_consumable_boxes_v2';
   if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(renameMigration)) {
-    db.prepare("UPDATE consumable_boxes SET item_type = '96-Well Plate' WHERE item_type = '-80 Plate Box'").run();
+    // SQLite can't ALTER CHECK constraints, so recreate the table without it
+    const hasTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='consumable_boxes'").get();
+    if (hasTable) {
+      console.log('MIGRATION: Rebuilding consumable_boxes to remove CHECK constraint...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS consumable_boxes_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          item_type TEXT NOT NULL,
+          box_label TEXT NOT NULL,
+          initial_qty INTEGER NOT NULL,
+          current_qty INTEGER NOT NULL,
+          status TEXT DEFAULT 'active' CHECK(status IN ('active','locked','empty')),
+          added_by INTEGER REFERENCES users(id),
+          added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          emptied_at DATETIME DEFAULT NULL
+        );
+        INSERT INTO consumable_boxes_new SELECT * FROM consumable_boxes;
+        DROP TABLE consumable_boxes;
+        ALTER TABLE consumable_boxes_new RENAME TO consumable_boxes;
+        UPDATE consumable_boxes SET item_type = '96-Well Plate' WHERE item_type = '-80 Plate Box';
+      `);
+      console.log('MIGRATION: Rebuilt table + renamed -80 Plate Box → 96-Well Plate');
+    }
     db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(renameMigration);
-    console.log('MIGRATION: Renamed -80 Plate Box → 96-Well Plate');
   }
 
   // ── One-time: set individual permanent passwords from .env (runs once) ──

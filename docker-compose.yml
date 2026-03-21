@@ -34,13 +34,22 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Tailscale Funnel: Permanent public HTTPS URL ──
-  # URL stays the same forever (e.g., https://mmilab-server.tail1234.ts.net)
-  # Check URL: docker exec mmilab-tunnel tailscale funnel status
-  # Auth key in .env (TS_AUTHKEY) — regenerate from Tailscale dashboard if expired
-  tunnel:
+  # ── Cloudflare Quick Tunnel: Fast public HTTPS (URL changes on restart) ──
+  # Check URL: docker logs mmilab-cloudflare 2>&1 | grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' | grep -v api | head -1
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    container_name: mmilab-cloudflare
+    command: tunnel --url http://nginx:80
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+  # ── Tailscale Funnel: Permanent public HTTPS URL (slower, but never changes) ──
+  # URL: https://mmilab-server.taile8367f.ts.net
+  # Check: docker exec mmilab-tailscale tailscale funnel status
+  tailscale:
     image: tailscale/tailscale:latest
-    container_name: mmilab-tunnel
+    container_name: mmilab-tailscale
     hostname: mmilab-server
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
@@ -48,7 +57,7 @@ services:
       - TS_SERVE_CONFIG=/config/serve-config.json
       - TS_USERSPACE=true
     volumes:
-      - tailscale-state:/var/lib/tailscale        # Persist Tailscale identity across restarts
+      - tailscale-state:/var/lib/tailscale
       - ./tailscale/serve-config.json:/config/serve-config.json:ro
     depends_on:
       - nginx
