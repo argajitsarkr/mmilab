@@ -6,6 +6,13 @@ router.use(authMiddleware);
 
 const ITEM_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '-80 Plate Box', 'Syringe Filter 0.22um'];
 
+// IST timestamp helper (UTC+5:30)
+function istNow() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + 330); // UTC + 5:30
+  return d.toISOString().replace('T', ' ').replace('Z', '');
+}
+
 // Argajit's user ID (looked up on first request and cached)
 let argajitId = null;
 function getArgajitId(db) {
@@ -121,15 +128,16 @@ router.post('/boxes', (req, res) => {
   ).get(item_type);
 
   const status = activeBox ? 'locked' : 'active';
+  const now = istNow();
 
   const result = db.prepare(
-    `INSERT INTO consumable_boxes (item_type, box_label, initial_qty, current_qty, status, added_by) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(item_type, box_label.trim(), qty, qty, status, req.user.id);
+    `INSERT INTO consumable_boxes (item_type, box_label, initial_qty, current_qty, status, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(item_type, box_label.trim(), qty, qty, status, req.user.id, now);
 
   // Log the addition
   db.prepare(
-    `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes) VALUES (?, ?, 'box_added', ?, ?, ?)`
-  ).run(result.lastInsertRowid, req.user.id, qty, qty, `New box added: ${box_label.trim()}`);
+    `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'box_added', ?, ?, ?, ?)`
+  ).run(result.lastInsertRowid, req.user.id, qty, qty, `New box added: ${box_label.trim()}`, now);
 
   const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(box);
@@ -147,20 +155,21 @@ router.post('/:id/withdraw', (req, res) => {
   if (qty > box.current_qty) return res.status(400).json({ error: `Only ${box.current_qty} left in this box.` });
 
   const newQty = box.current_qty - qty;
+  const now = istNow();
 
   const updateBox = db.transaction(() => {
     db.prepare('UPDATE consumable_boxes SET current_qty = ? WHERE id = ?').run(newQty, box.id);
 
     db.prepare(
-      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes) VALUES (?, ?, 'withdraw', ?, ?, ?)`
-    ).run(box.id, req.user.id, qty, newQty, req.body.notes || '');
+      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'withdraw', ?, ?, ?, ?)`
+    ).run(box.id, req.user.id, qty, newQty, req.body.notes || '', now);
 
     // If box is now empty, mark it and activate next locked box (FIFO)
     if (newQty === 0) {
-      db.prepare("UPDATE consumable_boxes SET status = 'empty', emptied_at = CURRENT_TIMESTAMP WHERE id = ?").run(box.id);
+      db.prepare("UPDATE consumable_boxes SET status = 'empty', current_qty = 0, emptied_at = ? WHERE id = ?").run(now, box.id);
       db.prepare(
-        `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes) VALUES (?, ?, 'box_emptied', 0, 0, 'Box fully consumed')`
-      ).run(box.id, req.user.id);
+        `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'box_emptied', 0, 0, 'Box fully consumed', ?)`
+      ).run(box.id, req.user.id, now);
 
       // Activate next locked box of same type (FIFO — oldest first)
       const nextBox = db.prepare(
@@ -192,11 +201,12 @@ router.post('/:id/correction', (req, res) => {
   if (newQty < 0) return res.status(400).json({ error: `Correction would make quantity negative (current: ${box.current_qty}).` });
 
   const action = correctionQty > 0 ? 'return' : 'correction';
+  const now = istNow();
 
   db.prepare('UPDATE consumable_boxes SET current_qty = ? WHERE id = ?').run(newQty, box.id);
   db.prepare(
-    `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(box.id, req.user.id, action, Math.abs(correctionQty), newQty, notes.trim());
+    `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(box.id, req.user.id, action, Math.abs(correctionQty), newQty, notes.trim(), now);
 
   res.json({ message: 'Correction recorded.', qty_after: newQty });
 });
@@ -212,11 +222,12 @@ router.post('/:id/mark-empty', (req, res) => {
   if (!box) return res.status(404).json({ error: 'Box not found.' });
   if (box.status === 'empty') return res.status(400).json({ error: 'Box is already empty.' });
 
+  const now = istNow();
   const markEmpty = db.transaction(() => {
-    db.prepare("UPDATE consumable_boxes SET status = 'empty', current_qty = 0, emptied_at = CURRENT_TIMESTAMP WHERE id = ?").run(box.id);
+    db.prepare("UPDATE consumable_boxes SET status = 'empty', current_qty = 0, emptied_at = ? WHERE id = ?").run(now, box.id);
     db.prepare(
-      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes) VALUES (?, ?, 'box_emptied', 0, 0, ?)`
-    ).run(box.id, req.user.id, req.body.notes || 'Manually marked as empty');
+      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'box_emptied', 0, 0, ?, ?)`
+    ).run(box.id, req.user.id, req.body.notes || 'Manually marked as empty', now);
 
     // Activate next locked box (FIFO)
     const nextBox = db.prepare(
@@ -229,6 +240,35 @@ router.post('/:id/mark-empty', (req, res) => {
 
   markEmpty();
   res.json({ message: 'Box marked as empty.' });
+});
+
+// ── DELETE /api/consumables/:id — Delete box and its ledger (Argajit + PI only) ──
+router.delete('/:id', (req, res) => {
+  const db = req.app.locals.db;
+  if (!canManageBoxes(req.user, db)) {
+    return res.status(403).json({ error: 'Only Argajit Sarkar or the PI can delete boxes.' });
+  }
+
+  const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(req.params.id);
+  if (!box) return res.status(404).json({ error: 'Box not found.' });
+
+  const deleteBox = db.transaction(() => {
+    db.prepare('DELETE FROM consumable_ledger WHERE box_id = ?').run(box.id);
+    db.prepare('DELETE FROM consumable_boxes WHERE id = ?').run(box.id);
+
+    // If deleted box was active, activate next locked box of same type
+    if (box.status === 'active') {
+      const nextBox = db.prepare(
+        `SELECT id FROM consumable_boxes WHERE item_type = ? AND status = 'locked' ORDER BY added_at ASC LIMIT 1`
+      ).get(box.item_type);
+      if (nextBox) {
+        db.prepare("UPDATE consumable_boxes SET status = 'active' WHERE id = ?").run(nextBox.id);
+      }
+    }
+  });
+
+  deleteBox();
+  res.json({ message: `Box "${box.box_label}" deleted.` });
 });
 
 module.exports = router;

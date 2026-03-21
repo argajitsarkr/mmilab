@@ -457,6 +457,7 @@
                 ${b.status === 'active' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showCorrectionModal(${b.id})">Correction</button>` : ''}
                 <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showBoxLedger(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Ledger</button>
                 ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.markBoxEmpty(${b.id})">Mark Empty</button>` : ''}
+                ${isBoxManager ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteBox(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Delete</button>` : ''}
               </td>
             </tr>`;
           }).join('')}</tbody>
@@ -1258,6 +1259,13 @@
       if (!confirm('Mark this box as empty? The next queued box will become active (FIFO).')) return;
       const result = await api(`/consumables/${boxId}/mark-empty`, { method: 'POST', body: JSON.stringify({}) });
       if (result.error) return alert(result.error);
+      refreshConsumables();
+    },
+
+    async deleteBox(boxId, boxLabel) {
+      if (!confirm(`Permanently delete box "${boxLabel}" and ALL its ledger entries?\n\nThis action cannot be undone.`)) return;
+      const result = await api(`/consumables/${boxId}`, { method: 'DELETE' });
+      if (result.error) return alert('Delete failed: ' + result.error);
       refreshConsumables();
     }
   };
