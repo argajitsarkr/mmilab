@@ -379,7 +379,7 @@
     el.innerHTML = `
       <div class="dash-header">
         <h1>Consumables Tracker</h1>
-        <p>FIFO batch management with append-only audit ledger</p>
+        <p>Batch management with append-only audit ledger</p>
       </div>
       <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
         <select class="dash-select" id="consTypeFilter" style="min-width: 180px;">
@@ -448,7 +448,7 @@
             const pct = b.initial_qty > 0 ? Math.round((b.current_qty / b.initial_qty) * 100) : 0;
             const barColor = pct > 50 ? '#22c55e' : pct > 20 ? '#eab308' : '#ef4444';
             const statusBadge = b.status === 'active' ? 'badge-available' : b.status === 'locked' ? 'badge-in-use' : 'badge-depleted';
-            const statusLabel = b.status === 'active' ? 'Active (Use This)' : b.status === 'locked' ? 'Locked (FIFO Queue)' : 'Empty';
+            const statusLabel = b.status === 'active' ? 'Active' : b.status === 'locked' ? 'Locked' : 'Empty';
             return `<tr style="${b.status === 'active' ? 'background: rgba(34,197,94,0.04);' : b.status === 'empty' ? 'opacity: 0.5;' : ''}">
               <td><strong>${b.box_label}</strong></td>
               <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
@@ -464,6 +464,7 @@
               <td>
                 ${b.status === 'active' ? `<button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
                 ${b.status === 'active' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showCorrectionModal(${b.id})">Correction</button>` : ''}
+                ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; ${b.status === 'locked' ? 'color: #22c55e; border-color: rgba(34,197,94,0.4);' : 'color: #eab308; border-color: rgba(234,179,8,0.4);'}" onclick="window.dashApp.toggleBox(${b.id})">${b.status === 'locked' ? 'Activate' : 'Lock'}</button>` : ''}
                 <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showBoxLedger(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Ledger</button>
                 ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.markBoxEmpty(${b.id})">Mark Empty</button>` : ''}
                 ${isBoxManager ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteBox(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Delete</button>` : ''}
@@ -1137,7 +1138,7 @@
           <input class="dash-input" id="newBoxQty" type="number" min="1" placeholder="e.g. 200">
         </div>
         <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 8px;">
-          If an active box of this type already exists, the new box will be <strong>locked</strong> until the current one is empty (FIFO).
+          New boxes start <strong>locked</strong>. Use the <strong>Activate</strong> button to make them available for withdrawal.
         </p>
       `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
          <button class="dash-btn" onclick="window.dashApp.addBox()">Add Box</button>`);
@@ -1275,6 +1276,12 @@
       if (!confirm(`Permanently delete box "${boxLabel}" and ALL its ledger entries?\n\nThis action cannot be undone.`)) return;
       const result = await api(`/consumables/${boxId}`, { method: 'DELETE' });
       if (result.error) return alert('Delete failed: ' + result.error);
+      refreshConsumables();
+    },
+
+    async toggleBox(boxId) {
+      const result = await api(`/consumables/${boxId}/toggle`, { method: 'POST', body: JSON.stringify({}) });
+      if (result.error) return alert(result.error);
       refreshConsumables();
     },
 
