@@ -120,33 +120,39 @@ function initDB() {
   // ── Migrations table ──
   db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)");
 
-  // ── Remove CHECK constraint on item_type + rename -80 Plate Box → 96-Well Plate ──
-  const renameMigration = 'rebuild_consumable_boxes_v2';
-  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(renameMigration)) {
-    // SQLite can't ALTER CHECK constraints, so recreate the table without it
-    const hasTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='consumable_boxes'").get();
-    if (hasTable) {
-      console.log('MIGRATION: Rebuilding consumable_boxes to remove CHECK constraint...');
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS consumable_boxes_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          item_type TEXT NOT NULL,
-          box_label TEXT NOT NULL,
-          initial_qty INTEGER NOT NULL,
-          current_qty INTEGER NOT NULL,
-          status TEXT DEFAULT 'active' CHECK(status IN ('active','locked','empty')),
-          added_by INTEGER REFERENCES users(id),
-          added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          emptied_at DATETIME DEFAULT NULL
-        );
-        INSERT INTO consumable_boxes_new SELECT * FROM consumable_boxes;
-        DROP TABLE consumable_boxes;
-        ALTER TABLE consumable_boxes_new RENAME TO consumable_boxes;
-        UPDATE consumable_boxes SET item_type = '96-Well Plate' WHERE item_type = '-80 Plate Box';
-      `);
-      console.log('MIGRATION: Rebuilt table + renamed -80 Plate Box → 96-Well Plate');
-    }
-    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(renameMigration);
+  // ── Drop old consumable tables with CHECK constraint and let CREATE TABLE above recreate them fresh ──
+  const dropMigration = 'drop_consumables_fresh_v1';
+  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(dropMigration)) {
+    console.log('MIGRATION: Dropping old consumable tables (will be recreated fresh)...');
+    db.exec('DROP TABLE IF EXISTS consumable_ledger');
+    db.exec('DROP TABLE IF EXISTS consumable_boxes');
+    db.exec('DROP TABLE IF EXISTS consumable_boxes_new');
+    // Recreate with no CHECK on item_type (as defined above in CREATE TABLE)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS consumable_boxes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_type TEXT NOT NULL,
+        box_label TEXT NOT NULL,
+        initial_qty INTEGER NOT NULL,
+        current_qty INTEGER NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active','locked','empty')),
+        added_by INTEGER REFERENCES users(id),
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        emptied_at DATETIME DEFAULT NULL
+      );
+      CREATE TABLE IF NOT EXISTS consumable_ledger (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        box_id INTEGER NOT NULL REFERENCES consumable_boxes(id),
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied')),
+        qty INTEGER NOT NULL,
+        qty_after INTEGER NOT NULL,
+        notes TEXT DEFAULT '',
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(dropMigration);
+    console.log('MIGRATION DONE: Fresh consumable tables created.');
   }
 
   // ── One-time: set individual permanent passwords from .env (runs once) ──
