@@ -206,6 +206,83 @@
 
         </div>
       </div>
+
+      <div style="background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 32px;">
+        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">How to use the Consumables Tracker</h3>
+
+        <p style="color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.6;">
+          The Consumables Tracker manages lab supplies like Petri plates, syringe filters, well plates, etc.
+          Every withdrawal is permanently logged with your name and timestamp. <strong>You cannot edit or delete entries</strong> — if you make a mistake, submit a correction instead.
+        </p>
+
+        <div style="background: rgba(209, 90, 43, 0.06); border: 1px solid var(--color-warm-border); padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+          <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Box Statuses</h4>
+          <ul style="color: var(--color-text-secondary); font-size: 0.85rem; margin-left: 20px; line-height: 1.6;">
+            <li><span class="badge badge-available">Active</span> — Open for withdrawal. Use these boxes.</li>
+            <li><span class="badge badge-in-use">Locked</span> — Reserved or not yet opened. Cannot withdraw from these.</li>
+            <li><span class="badge badge-depleted">Empty</span> — Fully consumed. View-only for audit purposes.</li>
+          </ul>
+          <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6; margin-top: 8px;">
+            Multiple boxes of the same item can be <strong>Active</strong> at once (e.g. lab stock + personal purchase shared with the group).
+          </p>
+        </div>
+
+        <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 5v14M5 12h14"/></svg>
+              Withdrawing Items
+            </h4>
+            <ol style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>Go to <strong>"Consumables"</strong> in the sidebar.</li>
+              <li>Find the <span class="badge badge-available">Active</span> box for the item you need.</li>
+              <li>Click <strong>"Withdraw"</strong>, enter the quantity taken.</li>
+              <li>Optionally add a note (e.g. "Plating V. cholerae isolates").</li>
+              <li>The system <strong>automatically records your name and the exact IST time</strong>. You cannot backdate.</li>
+            </ol>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+              Corrections (No Edit / No Delete)
+            </h4>
+            <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>Entries are <strong>permanent</strong>. You cannot edit or delete any log.</li>
+              <li>If you made a mistake (e.g. entered 50 instead of 5, or broke plates), click <strong>"Correction"</strong> on that box.</li>
+              <li>Enter a <strong>positive number</strong> to return items, or <strong>negative</strong> to record additional usage/breakage.</li>
+              <li>A <strong>written reason is required</strong> — both the original entry and the correction stay in the audit trail.</li>
+            </ul>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              Viewing Usage History
+            </h4>
+            <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li>Click <strong>"Ledger"</strong> on any box to see its full history — who took what, when, and how much was left.</li>
+              <li>Click <strong>"View Full Ledger"</strong> at the top to see all activity across all item types.</li>
+              <li>Everyone can view all logs — <strong>transparency and accountability</strong> is the goal.</li>
+            </ul>
+          </div>
+
+          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Rules & Anti-Tampering
+            </h4>
+            <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
+              <li><strong style="color: #dc2626;">Never forget to log</strong> — every item you take must be recorded immediately.</li>
+              <li>Timestamps are set by the <strong>server</strong>, not your device — no backdating possible.</li>
+              <li>Only the lab manager can add new boxes, activate/lock them, or mark them empty.</li>
+              <li>If a box runs out during your withdrawal, it is automatically marked <span class="badge badge-depleted">Empty</span>.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
     `;
     el.innerHTML = html;
   }
@@ -389,56 +466,6 @@
         <button class="dash-btn-outline" id="consLedgerBtn">View Full Ledger</button>
         ${isBoxManager ? '<button class="dash-btn-outline" id="consManageTypesBtn">Manage Types</button>' : ''}
         ${isBoxManager ? '<button class="dash-btn" id="consAddBoxBtn">+ Add New Box</button>' : ''}
-      </div>
-      <div id="consGuide" style="margin-bottom: 24px; background: white; border: var(--border-light); padding: 24px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h3 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--brand-orange); margin: 0;">How to Use the Consumables Tracker</h3>
-          <button class="dash-btn-outline" style="padding: 4px 12px; font-size: 0.7rem;" onclick="this.closest('#consGuide').style.display='none'">Hide</button>
-        </div>
-        <div style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-          <div style="padding: 16px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
-            <h4 style="margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-              <span style="color: var(--brand-orange); font-weight: 700;">1.</span> Withdraw Items
-            </h4>
-            <ul style="color: var(--color-text-secondary); font-size: 0.82rem; margin-left: 16px; line-height: 1.6;">
-              <li>Find the <span class="badge badge-available" style="font-size: 0.7rem;">Active</span> box for the item you need.</li>
-              <li>Click <strong>"Withdraw"</strong>, enter the quantity taken, and optionally add a note (e.g. "Plating V. cholerae").</li>
-              <li>The system <strong>automatically records your name and the exact time</strong> — you cannot backdate entries.</li>
-            </ul>
-          </div>
-          <div style="padding: 16px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
-            <h4 style="margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-              <span style="color: var(--brand-orange); font-weight: 700;">2.</span> Made a Mistake?
-            </h4>
-            <ul style="color: var(--color-text-secondary); font-size: 0.82rem; margin-left: 16px; line-height: 1.6;">
-              <li>You <strong>cannot edit or delete</strong> past entries.</li>
-              <li>Instead, click <strong>"Correction"</strong> on the box.</li>
-              <li>Enter a <strong>positive number</strong> to return items, or <strong>negative</strong> to record breakage/loss.</li>
-              <li>A <strong>reason is required</strong> — this creates a transparent audit trail.</li>
-            </ul>
-          </div>
-          <div style="padding: 16px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
-            <h4 style="margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-              <span style="color: var(--brand-orange); font-weight: 700;">3.</span> View Usage History
-            </h4>
-            <ul style="color: var(--color-text-secondary); font-size: 0.82rem; margin-left: 16px; line-height: 1.6;">
-              <li>Click <strong>"Ledger"</strong> on any box to see its full history — who took what, when.</li>
-              <li>Click <strong>"View Full Ledger"</strong> at the top to see all activity across all boxes.</li>
-              <li>Everyone can view all logs — transparency is the goal.</li>
-            </ul>
-          </div>
-          <div style="padding: 16px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
-            <h4 style="margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-              <span style="color: var(--brand-orange); font-weight: 700;">4.</span> Box Statuses
-            </h4>
-            <ul style="color: var(--color-text-secondary); font-size: 0.82rem; margin-left: 16px; line-height: 1.6;">
-              <li><span class="badge badge-available" style="font-size: 0.7rem;">Active</span> — Available for withdrawal. Use these boxes.</li>
-              <li><span class="badge badge-in-use" style="font-size: 0.7rem;">Locked</span> — Reserved / not yet opened. Cannot withdraw.</li>
-              <li><span class="badge badge-depleted" style="font-size: 0.7rem;">Empty</span> — Fully used. View-only.</li>
-              <li>Multiple boxes of the same type can be active at once (e.g. lab stock + personal purchase).</li>
-            </ul>
-          </div>
-        </div>
       </div>
       <div id="consSummary" style="margin-bottom: 24px;"></div>
       <div id="consBoxes"></div>
