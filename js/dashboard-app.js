@@ -87,6 +87,8 @@
     const hash = window.location.hash.replace('#', '');
     if (hash.startsWith('stock/')) {
       navigateTo('stock');
+    } else if (hash.startsWith('consumables')) {
+      navigateTo('consumables');
     } else if (hash) {
       navigateTo(hash);
     }
@@ -108,6 +110,7 @@
     switch(page) {
       case 'overview': return loadOverview();
       case 'stock': return loadStock();
+      case 'consumables': return loadConsumables();
       case 'docs': return loadDocs();
 
       case 'scholars': return user.role === 'pi' ? loadScholars() : null;
@@ -356,6 +359,110 @@
       </fieldset>
     `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
        <button class="dash-btn" onclick="window.dashApp.addStrain()">Add Stock</button>`);
+  }
+
+  // ══════════════════════════════════════
+  // ── CONSUMABLES TRACKING PAGE
+  // ══════════════════════════════════════
+  const CONSUMABLE_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '-80 Plate Box', 'Syringe Filter 0.22um'];
+  const isBoxManager = user.role === 'pi' || user.email === 'argajit05@gmail.com';
+
+  async function loadConsumables() {
+    const el = document.getElementById('page-consumables');
+    el.innerHTML = `
+      <div class="dash-header">
+        <h1>Consumables Tracker</h1>
+        <p>FIFO batch management with append-only audit ledger</p>
+      </div>
+      <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
+        <select class="dash-select" id="consTypeFilter" style="min-width: 180px;">
+          <option value="all">All Item Types</option>
+          ${CONSUMABLE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <button class="dash-btn-outline" id="consLedgerBtn">View Full Ledger</button>
+        ${isBoxManager ? '<button class="dash-btn" id="consAddBoxBtn">+ Add New Box</button>' : ''}
+      </div>
+      <div id="consSummary" style="margin-bottom: 24px;"></div>
+      <div id="consBoxes"></div>
+    `;
+
+    const typeFilter = document.getElementById('consTypeFilter');
+    typeFilter.addEventListener('change', refreshConsumables);
+    document.getElementById('consLedgerBtn').addEventListener('click', () => window.dashApp.showFullLedger());
+    if (isBoxManager) {
+      document.getElementById('consAddBoxBtn').addEventListener('click', () => window.dashApp.showAddBoxModal());
+    }
+    refreshConsumables();
+  }
+
+  async function refreshConsumables() {
+    const typeVal = document.getElementById('consTypeFilter').value;
+    const [boxes, summary] = await Promise.all([
+      api(`/consumables?item_type=${encodeURIComponent(typeVal)}`),
+      api('/consumables/summary')
+    ]);
+    renderConsSummary(summary);
+    renderConsBoxes(boxes);
+  }
+
+  function renderConsSummary(summary) {
+    const el = document.getElementById('consSummary');
+    if (!summary.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+      ${summary.map(s => `
+        <div style="background: white; border: var(--border-light); padding: 16px; border-radius: 4px;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: 4px;">${s.item_type}</div>
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-orange);">${s.total_qty}</div>
+          <div style="font-size: 0.75rem; color: var(--color-text-secondary);">${s.active_boxes} active box${s.active_boxes !== 1 ? 'es' : ''} &middot; ${s.empty_boxes} empty</div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  function renderConsBoxes(boxes) {
+    const el = document.getElementById('consBoxes');
+    if (!boxes.length) {
+      el.innerHTML = '<div style="padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No boxes found. ' + (isBoxManager ? 'Click "+ Add New Box" to start.' : 'Ask Argajit or the PI to add boxes.') + '</p></div>';
+      return;
+    }
+
+    // Group by item type
+    const grouped = {};
+    boxes.forEach(b => { (grouped[b.item_type] = grouped[b.item_type] || []).push(b); });
+
+    el.innerHTML = Object.entries(grouped).map(([type, typeBoxes]) => `
+      <div style="margin-bottom: 32px;">
+        <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--color-warm-border);">${type}</h3>
+        <div class="dash-table-wrap"><table class="dash-table">
+          <thead><tr><th>Box Label</th><th>Status</th><th>Remaining</th><th>Progress</th><th>Added By</th><th>Date Added</th><th>Actions</th></tr></thead>
+          <tbody>${typeBoxes.map(b => {
+            const pct = b.initial_qty > 0 ? Math.round((b.current_qty / b.initial_qty) * 100) : 0;
+            const barColor = pct > 50 ? '#22c55e' : pct > 20 ? '#eab308' : '#ef4444';
+            const statusBadge = b.status === 'active' ? 'badge-available' : b.status === 'locked' ? 'badge-in-use' : 'badge-depleted';
+            const statusLabel = b.status === 'active' ? 'Active (Use This)' : b.status === 'locked' ? 'Locked (FIFO Queue)' : 'Empty';
+            return `<tr style="${b.status === 'active' ? 'background: rgba(34,197,94,0.04);' : b.status === 'empty' ? 'opacity: 0.5;' : ''}">
+              <td><strong>${b.box_label}</strong></td>
+              <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+              <td><strong>${b.current_qty}</strong> / ${b.initial_qty}</td>
+              <td style="min-width: 120px;">
+                <div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
+                  <div style="background: ${barColor}; height: 100%; width: ${pct}%; transition: width 0.3s;"></div>
+                </div>
+                <span style="font-size: 0.7rem; color: var(--color-text-secondary);">${pct}%</span>
+              </td>
+              <td style="font-size: 0.8rem;">${b.added_by_name || '—'}</td>
+              <td style="font-size: 0.8rem;">${new Date(b.added_at).toLocaleDateString()}</td>
+              <td>
+                ${b.status === 'active' ? `<button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
+                ${b.status === 'active' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showCorrectionModal(${b.id})">Correction</button>` : ''}
+                <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showBoxLedger(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Ledger</button>
+                ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.markBoxEmpty(${b.id})">Mark Empty</button>` : ''}
+              </td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>
+    `).join('');
   }
 
   // ══════════════════════════════════════
@@ -1000,6 +1107,158 @@
       });
       closeModal();
       loadProjects();
+    },
+
+    // ── Consumables Modal Actions ──
+    showAddBoxModal() {
+      showModal('Add New Consumable Box', `
+        <div class="dash-form-group">
+          <label class="dash-form-label">Item Type *</label>
+          <select class="dash-input" id="newBoxType">
+            ${CONSUMABLE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Box Label *</label>
+          <input class="dash-input" id="newBoxLabel" placeholder="e.g. Petri Box #3 (HiMedia, Mar 2026)">
+        </div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Initial Quantity *</label>
+          <input class="dash-input" id="newBoxQty" type="number" min="1" placeholder="e.g. 200">
+        </div>
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 8px;">
+          If an active box of this type already exists, the new box will be <strong>locked</strong> until the current one is empty (FIFO).
+        </p>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.addBox()">Add Box</button>`);
+    },
+
+    async addBox() {
+      const item_type = document.getElementById('newBoxType').value;
+      const box_label = document.getElementById('newBoxLabel').value.trim();
+      const initial_qty = document.getElementById('newBoxQty').value;
+      if (!box_label) return alert('Box label is required.');
+      if (!initial_qty || parseInt(initial_qty) <= 0) return alert('Enter a valid quantity.');
+      const result = await api('/consumables/boxes', {
+        method: 'POST',
+        body: JSON.stringify({ item_type, box_label, initial_qty: parseInt(initial_qty) })
+      });
+      if (result.error) return alert(result.error);
+      closeModal();
+      refreshConsumables();
+    },
+
+    showWithdrawModal(boxId) {
+      showModal('Withdraw from Box', `
+        <div class="dash-form-group">
+          <label class="dash-form-label">Quantity to withdraw *</label>
+          <input class="dash-input" id="withdrawQty" type="number" min="1" placeholder="e.g. 5">
+        </div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Purpose / Notes</label>
+          <input class="dash-input" id="withdrawNotes" placeholder="e.g. Plating V. cholerae isolates">
+        </div>
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 8px;">
+          Timestamp is set automatically by the server. You cannot backdate entries.
+        </p>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.withdraw(${boxId})">Confirm Withdrawal</button>`);
+    },
+
+    async withdraw(boxId) {
+      const qty = document.getElementById('withdrawQty').value;
+      const notes = document.getElementById('withdrawNotes').value;
+      if (!qty || parseInt(qty) <= 0) return alert('Enter a valid quantity.');
+      const result = await api(`/consumables/${boxId}/withdraw`, {
+        method: 'POST',
+        body: JSON.stringify({ qty: parseInt(qty), notes })
+      });
+      if (result.error) return alert(result.error);
+      closeModal();
+      refreshConsumables();
+    },
+
+    showCorrectionModal(boxId) {
+      showModal('Submit Correction', `
+        <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+          Use this to fix mistakes. <strong>Positive</strong> number = return items. <strong>Negative</strong> number = remove more (e.g. breakage).
+          <br>Entries cannot be edited or deleted — corrections create a new audit trail entry.
+        </p>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Correction Quantity *</label>
+          <input class="dash-input" id="corrQty" type="number" placeholder="e.g. -3 (broke 3) or +5 (return 5)">
+        </div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Reason (required) *</label>
+          <input class="dash-input" id="corrNotes" placeholder="e.g. Accidentally broke 3 plates during autoclaving">
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.submitCorrection(${boxId})">Submit Correction</button>`);
+    },
+
+    async submitCorrection(boxId) {
+      const qty = document.getElementById('corrQty').value;
+      const notes = document.getElementById('corrNotes').value.trim();
+      if (!qty || parseInt(qty) === 0) return alert('Correction quantity cannot be 0.');
+      if (!notes) return alert('You must provide a reason for the correction.');
+      const result = await api(`/consumables/${boxId}/correction`, {
+        method: 'POST',
+        body: JSON.stringify({ qty: parseInt(qty), notes })
+      });
+      if (result.error) return alert(result.error);
+      closeModal();
+      refreshConsumables();
+    },
+
+    async showBoxLedger(boxId, boxLabel) {
+      const logs = await api(`/consumables/${boxId}/ledger`);
+      const actionBadge = (a) => a === 'withdraw' ? 'badge-in-use' : a === 'return' ? 'badge-available' : a === 'correction' ? 'badge-depleted' : 'badge-active';
+      showModal(`Ledger — ${boxLabel}`, `
+        <div style="max-height: 400px; overflow-y: auto;">
+        ${logs.length ? `<table class="dash-table" style="font-size: 0.85rem;">
+          <thead><tr><th>Time</th><th>Action</th><th>Qty</th><th>After</th><th>By</th><th>Notes</th></tr></thead>
+          <tbody>${logs.map(l => `<tr>
+            <td style="font-size: 0.75rem; white-space: nowrap;">${new Date(l.timestamp).toLocaleString()}</td>
+            <td><span class="badge ${actionBadge(l.action)}">${l.action}</span></td>
+            <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
+            <td><strong>${l.qty_after}</strong></td>
+            <td style="font-size: 0.8rem;">${l.user_name}</td>
+            <td style="font-size: 0.8rem;">${l.notes || '—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
+    async showFullLedger() {
+      const typeVal = document.getElementById('consTypeFilter')?.value || 'all';
+      const logs = await api(`/consumables/ledger/all?item_type=${encodeURIComponent(typeVal)}`);
+      const actionBadge = (a) => a === 'withdraw' ? 'badge-in-use' : a === 'return' ? 'badge-available' : a === 'correction' ? 'badge-depleted' : 'badge-active';
+      showModal('Full Consumables Ledger', `
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 12px;">Last 200 entries. All entries are permanent and cannot be edited or deleted.</p>
+        <div style="max-height: 450px; overflow-y: auto;">
+        ${logs.length ? `<table class="dash-table" style="font-size: 0.8rem;">
+          <thead><tr><th>Time</th><th>Item</th><th>Box</th><th>Action</th><th>Qty</th><th>After</th><th>By</th><th>Notes</th></tr></thead>
+          <tbody>${logs.map(l => `<tr>
+            <td style="font-size: 0.7rem; white-space: nowrap;">${new Date(l.timestamp).toLocaleString()}</td>
+            <td style="font-size: 0.75rem;">${l.item_type || ''}</td>
+            <td style="font-size: 0.75rem;">${l.box_label || ''}</td>
+            <td><span class="badge ${actionBadge(l.action)}">${l.action}</span></td>
+            <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
+            <td><strong>${l.qty_after}</strong></td>
+            <td style="font-size: 0.75rem;">${l.user_name}</td>
+            <td style="font-size: 0.75rem;">${l.notes || '—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
+    async markBoxEmpty(boxId) {
+      if (!confirm('Mark this box as empty? The next queued box will become active (FIFO).')) return;
+      const result = await api(`/consumables/${boxId}/mark-empty`, { method: 'POST', body: JSON.stringify({}) });
+      if (result.error) return alert(result.error);
+      refreshConsumables();
     }
   };
 

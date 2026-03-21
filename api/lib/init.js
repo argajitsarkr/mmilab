@@ -87,6 +87,29 @@ function initDB() {
       role_in_project TEXT DEFAULT 'member',
       UNIQUE(project_id, user_id)
     );
+
+    CREATE TABLE IF NOT EXISTS consumable_boxes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_type TEXT NOT NULL CHECK(item_type IN ('Petri Plate 90mm','Cryo Vial Box','-80 Plate Box','Syringe Filter 0.22um')),
+      box_label TEXT NOT NULL,
+      initial_qty INTEGER NOT NULL,
+      current_qty INTEGER NOT NULL,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active','locked','empty')),
+      added_by INTEGER REFERENCES users(id),
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      emptied_at DATETIME DEFAULT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS consumable_ledger (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      box_id INTEGER NOT NULL REFERENCES consumable_boxes(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied')),
+      qty INTEGER NOT NULL,
+      qty_after INTEGER NOT NULL,
+      notes TEXT DEFAULT '',
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // ── Migrations: add columns safely ──
