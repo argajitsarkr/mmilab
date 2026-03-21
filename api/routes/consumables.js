@@ -4,7 +4,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-const ITEM_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '96-Well Plate', '24-Well Plate', 'Syringe Filter 0.22um', 'Ethanol'];
+// Item types are now dynamic — stored in consumable_types table
+function getItemTypes(db) {
+  return db.prepare('SELECT name FROM consumable_types ORDER BY name ASC').all().map(r => r.name);
+}
 
 // IST timestamp helper (UTC+5:30)
 function istNow() {
@@ -49,9 +52,46 @@ router.get('/', (req, res) => {
   res.json(boxes);
 });
 
-// ── GET /api/consumables/types — Item types list ──
+// ── GET /api/consumables/types — Item types list (from DB) ──
 router.get('/types', (req, res) => {
-  res.json(ITEM_TYPES);
+  const db = req.app.locals.db;
+  const types = db.prepare('SELECT * FROM consumable_types ORDER BY name ASC').all();
+  res.json(types);
+});
+
+// ── POST /api/consumables/types — Add a new item type (Argajit + PI only) ──
+router.post('/types', (req, res) => {
+  const db = req.app.locals.db;
+  if (!canManageBoxes(req.user, db)) {
+    return res.status(403).json({ error: 'Only Argajit Sarkar or the PI can manage item types.' });
+  }
+  const { name, unit } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Item type name is required.' });
+
+  const existing = db.prepare('SELECT id FROM consumable_types WHERE name = ?').get(name.trim());
+  if (existing) return res.status(400).json({ error: `"${name.trim()}" already exists.` });
+
+  db.prepare('INSERT INTO consumable_types (name, unit) VALUES (?, ?)').run(name.trim(), (unit || 'pcs').trim());
+  res.status(201).json({ message: `Item type "${name.trim()}" added.` });
+});
+
+// ── DELETE /api/consumables/types/:id — Remove an item type (Argajit + PI only) ──
+router.delete('/types/:id', (req, res) => {
+  const db = req.app.locals.db;
+  if (!canManageBoxes(req.user, db)) {
+    return res.status(403).json({ error: 'Only Argajit Sarkar or the PI can manage item types.' });
+  }
+  const type = db.prepare('SELECT * FROM consumable_types WHERE id = ?').get(req.params.id);
+  if (!type) return res.status(404).json({ error: 'Item type not found.' });
+
+  // Check if any boxes use this type
+  const boxCount = db.prepare('SELECT COUNT(*) as c FROM consumable_boxes WHERE item_type = ?').get(type.name).c;
+  if (boxCount > 0) {
+    return res.status(400).json({ error: `Cannot delete — ${boxCount} box(es) use this type. Delete the boxes first.` });
+  }
+
+  db.prepare('DELETE FROM consumable_types WHERE id = ?').run(req.params.id);
+  res.json({ message: `Item type "${type.name}" deleted.` });
 });
 
 // ── GET /api/consumables/summary — Quick counts per item type ──
@@ -116,8 +156,10 @@ router.post('/boxes', (req, res) => {
   if (!item_type || !box_label || !initial_qty) {
     return res.status(400).json({ error: 'Item type, box label, and initial quantity are required.' });
   }
-  if (!ITEM_TYPES.includes(item_type)) {
-    return res.status(400).json({ error: 'Invalid item type.' });
+  // Validate item type exists in DB
+  const validType = db.prepare('SELECT id FROM consumable_types WHERE name = ?').get(item_type);
+  if (!validType) {
+    return res.status(400).json({ error: `Invalid item type "${item_type}". Add it from Manage Types first.` });
   }
   const qty = parseInt(initial_qty);
   if (qty <= 0) return res.status(400).json({ error: 'Quantity must be greater than 0.' });

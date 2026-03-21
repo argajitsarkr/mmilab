@@ -364,10 +364,17 @@
   // ══════════════════════════════════════
   // ── CONSUMABLES TRACKING PAGE
   // ══════════════════════════════════════
-  const CONSUMABLE_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '96-Well Plate', '24-Well Plate', 'Syringe Filter 0.22um', 'Ethanol'];
+  let consumableTypes = []; // loaded from DB
   const isBoxManager = user.role === 'pi' || user.email === 'argajit05@gmail.com';
 
+  async function loadConsumableTypes() {
+    const types = await api('/consumables/types');
+    consumableTypes = types.map(t => typeof t === 'string' ? t : t.name);
+    return consumableTypes;
+  }
+
   async function loadConsumables() {
+    await loadConsumableTypes();
     const el = document.getElementById('page-consumables');
     el.innerHTML = `
       <div class="dash-header">
@@ -377,9 +384,10 @@
       <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
         <select class="dash-select" id="consTypeFilter" style="min-width: 180px;">
           <option value="all">All Item Types</option>
-          ${CONSUMABLE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+          ${consumableTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
         </select>
         <button class="dash-btn-outline" id="consLedgerBtn">View Full Ledger</button>
+        ${isBoxManager ? '<button class="dash-btn-outline" id="consManageTypesBtn">Manage Types</button>' : ''}
         ${isBoxManager ? '<button class="dash-btn" id="consAddBoxBtn">+ Add New Box</button>' : ''}
       </div>
       <div id="consSummary" style="margin-bottom: 24px;"></div>
@@ -391,6 +399,7 @@
     document.getElementById('consLedgerBtn').addEventListener('click', () => window.dashApp.showFullLedger());
     if (isBoxManager) {
       document.getElementById('consAddBoxBtn').addEventListener('click', () => window.dashApp.showAddBoxModal());
+      document.getElementById('consManageTypesBtn').addEventListener('click', () => window.dashApp.showManageTypes());
     }
     refreshConsumables();
   }
@@ -1116,7 +1125,7 @@
         <div class="dash-form-group">
           <label class="dash-form-label">Item Type *</label>
           <select class="dash-input" id="newBoxType">
-            ${CONSUMABLE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+            ${consumableTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
           </select>
         </div>
         <div class="dash-form-group">
@@ -1267,6 +1276,53 @@
       const result = await api(`/consumables/${boxId}`, { method: 'DELETE' });
       if (result.error) return alert('Delete failed: ' + result.error);
       refreshConsumables();
+    },
+
+    async showManageTypes() {
+      const types = await api('/consumables/types');
+      showModal('Manage Item Types', `
+        <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+          Add or remove consumable item types. Types with existing boxes cannot be deleted.
+        </p>
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <input class="dash-input" id="newTypeName" placeholder="New type name (e.g. Gloves Box)" style="flex:1;">
+          <input class="dash-input" id="newTypeUnit" placeholder="Unit (pcs)" style="width: 80px;">
+          <button class="dash-btn" onclick="window.dashApp.addItemType()">Add</button>
+        </div>
+        <div id="typesList">
+          ${types.map(t => `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--color-warm-border, #e5e1dc);">
+              <div>
+                <strong>${t.name}</strong>
+                <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-left: 8px;">(${t.unit || 'pcs'})</span>
+              </div>
+              <button class="dash-btn-outline" style="padding: 4px 10px; font-size: 0.7rem; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteItemType(${t.id}, '${t.name.replace(/'/g, "\\'")}')">Remove</button>
+            </div>
+          `).join('')}
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
+    async addItemType() {
+      const name = document.getElementById('newTypeName').value.trim();
+      const unit = document.getElementById('newTypeUnit').value.trim() || 'pcs';
+      if (!name) return alert('Enter a type name.');
+      const result = await api('/consumables/types', {
+        method: 'POST',
+        body: JSON.stringify({ name, unit })
+      });
+      if (result.error) return alert(result.error);
+      // Refresh the modal and the types list
+      await loadConsumableTypes();
+      window.dashApp.showManageTypes();
+    },
+
+    async deleteItemType(id, name) {
+      if (!confirm(`Delete item type "${name}"?`)) return;
+      const result = await api(`/consumables/types/${id}`, { method: 'DELETE' });
+      if (result.error) return alert(result.error);
+      await loadConsumableTypes();
+      window.dashApp.showManageTypes();
     }
   };
 

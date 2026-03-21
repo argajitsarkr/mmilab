@@ -88,6 +88,13 @@ function initDB() {
       UNIQUE(project_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS consumable_types (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      unit TEXT DEFAULT 'pcs',
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS consumable_boxes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_type TEXT NOT NULL,
@@ -153,6 +160,22 @@ function initDB() {
     `);
     db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(dropMigration);
     console.log('MIGRATION DONE: Fresh consumable tables created.');
+  }
+
+  // ── Seed default consumable types if table is empty ──
+  const typeCount = db.prepare('SELECT COUNT(*) as c FROM consumable_types').get().c;
+  if (typeCount === 0) {
+    const defaultTypes = [
+      { name: 'Petri Plate 90mm', unit: 'pcs' },
+      { name: 'Cryo Vial Box', unit: 'pcs' },
+      { name: '96-Well Plate', unit: 'pcs' },
+      { name: '24-Well Plate', unit: 'pcs' },
+      { name: 'Syringe Filter 0.22um', unit: 'pcs' },
+      { name: 'Ethanol', unit: 'bottles' }
+    ];
+    const insertType = db.prepare('INSERT OR IGNORE INTO consumable_types (name, unit) VALUES (?, ?)');
+    for (const t of defaultTypes) insertType.run(t.name, t.unit);
+    console.log(`Seeded ${defaultTypes.length} default consumable types.`);
   }
 
   // ── One-time: set individual permanent passwords from .env (runs once) ──
