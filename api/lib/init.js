@@ -90,7 +90,7 @@ function initDB() {
 
     CREATE TABLE IF NOT EXISTS consumable_boxes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      item_type TEXT NOT NULL CHECK(item_type IN ('Petri Plate 90mm','Cryo Vial Box','-80 Plate Box','Syringe Filter 0.22um')),
+      item_type TEXT NOT NULL,
       box_label TEXT NOT NULL,
       initial_qty INTEGER NOT NULL,
       current_qty INTEGER NOT NULL,
@@ -119,6 +119,14 @@ function initDB() {
 
   // ── Migrations table ──
   db.exec("CREATE TABLE IF NOT EXISTS _migrations (key TEXT PRIMARY KEY)");
+
+  // ── Rename -80 Plate Box → 96-Well Plate ──
+  const renameMigration = 'rename_80plate_to_96well';
+  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(renameMigration)) {
+    db.prepare("UPDATE consumable_boxes SET item_type = '96-Well Plate' WHERE item_type = '-80 Plate Box'").run();
+    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(renameMigration);
+    console.log('MIGRATION: Renamed -80 Plate Box → 96-Well Plate');
+  }
 
   // ── One-time: set individual permanent passwords from .env (runs once) ──
   // Passwords are stored ONLY in .env (gitignored), never in source code.

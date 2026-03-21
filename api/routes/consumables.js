@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-const ITEM_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '-80 Plate Box', 'Syringe Filter 0.22um'];
+const ITEM_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '96-Well Plate', '24-Well Plate', 'Syringe Filter 0.22um', 'Ethanol'];
 
 // IST timestamp helper (UTC+5:30)
 function istNow() {

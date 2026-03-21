@@ -364,7 +364,7 @@
   // ══════════════════════════════════════
   // ── CONSUMABLES TRACKING PAGE
   // ══════════════════════════════════════
-  const CONSUMABLE_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '-80 Plate Box', 'Syringe Filter 0.22um'];
+  const CONSUMABLE_TYPES = ['Petri Plate 90mm', 'Cryo Vial Box', '96-Well Plate', '24-Well Plate', 'Syringe Filter 0.22um', 'Ethanol'];
   const isBoxManager = user.role === 'pi' || user.email === 'argajit05@gmail.com';
 
   async function loadConsumables() {
