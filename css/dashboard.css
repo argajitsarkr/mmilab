@@ -131,7 +131,7 @@
 .dash-modal-overlay.active { display: flex; }
 .dash-modal {
     background: white; border: var(--border-light); padding: 32px;
-    max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto;
+    max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto;
 }
 .dash-modal h2 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; }
 .dash-modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }

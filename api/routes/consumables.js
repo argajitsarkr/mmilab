@@ -94,6 +94,46 @@ router.delete('/types/:id', (req, res) => {
   res.json({ message: `Item type "${type.name}" deleted.` });
 });
 
+// ── GET /api/consumables/stats — Month-wise usage stats by user ──
+router.get('/stats', (req, res) => {
+  const db = req.app.locals.db;
+  const { months } = req.query;
+  const monthCount = parseInt(months) || 3;
+
+  // Get month-wise withdrawal totals per user per item type
+  const stats = db.prepare(`
+    SELECT
+      u.name as user_name,
+      cb.item_type,
+      strftime('%Y-%m', cl.timestamp) as month,
+      SUM(cl.qty) as total_qty
+    FROM consumable_ledger cl
+    JOIN users u ON cl.user_id = u.id
+    JOIN consumable_boxes cb ON cl.box_id = cb.id
+    WHERE cl.action = 'withdraw'
+      AND cl.timestamp >= date('now', '-' || ? || ' months')
+    GROUP BY u.name, cb.item_type, month
+    ORDER BY month DESC, u.name ASC
+  `).all(monthCount);
+
+  // Get per-user totals across all time
+  const userTotals = db.prepare(`
+    SELECT
+      u.name as user_name,
+      cb.item_type,
+      SUM(cl.qty) as total_qty,
+      COUNT(cl.id) as withdrawal_count
+    FROM consumable_ledger cl
+    JOIN users u ON cl.user_id = u.id
+    JOIN consumable_boxes cb ON cl.box_id = cb.id
+    WHERE cl.action = 'withdraw'
+    GROUP BY u.name, cb.item_type
+    ORDER BY total_qty DESC
+  `).all();
+
+  res.json({ monthly: stats, userTotals });
+});
+
 // ── GET /api/consumables/summary — Quick counts per item type ──
 router.get('/summary', (req, res) => {
   const db = req.app.locals.db;

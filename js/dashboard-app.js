@@ -285,6 +285,122 @@
       </div>
     `;
     el.innerHTML = html;
+
+    // Load consumables usage stats dynamically
+    loadOverviewStats(el);
+  }
+
+  async function loadOverviewStats(el) {
+    try {
+      const data = await api('/consumables/stats?months=3');
+      if (!data || !data.monthly || (!data.monthly.length && !data.userTotals.length)) return;
+
+      const statsDiv = document.createElement('div');
+      statsDiv.style.cssText = 'background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 32px;';
+
+      // Build month labels for last 3 months
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const now = new Date();
+      const last3 = [];
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        last3.push({ key: d.toISOString().slice(0, 7), label: monthNames[d.getMonth()] + ' ' + d.getFullYear() });
+      }
+
+      // Get unique users and item types from data
+      const users = [...new Set(data.monthly.map(r => r.user_name))].sort();
+      const itemTypes = [...new Set(data.monthly.map(r => r.item_type))].sort();
+      const colors = ['#D15A2B','#2563eb','#16a34a','#9333ea','#dc2626','#ca8a04','#0891b2','#be185d'];
+
+      // Build lookup: { "user|type|month": qty }
+      const lookup = {};
+      data.monthly.forEach(r => { lookup[r.user_name + '|' + r.item_type + '|' + r.month] = r.total_qty; });
+
+      // Find max value for bar scaling
+      let maxVal = 0;
+      users.forEach(u => last3.forEach(m => {
+        let total = 0;
+        itemTypes.forEach(t => { total += (lookup[u + '|' + t + '|' + m.key] || 0); });
+        if (total > maxVal) maxVal = total;
+      }));
+      if (maxVal === 0) maxVal = 1;
+
+      // Monthly chart — stacked horizontal bars per user per month
+      let chartHtml = `
+        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">Consumables Usage — Last 3 Months</h3>
+        <p style="color: var(--color-text-secondary); margin-bottom: 24px; font-size: 0.85rem;">Month-wise withdrawal totals per scholar, broken down by item type.</p>
+      `;
+
+      // Legend
+      chartHtml += `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        ${itemTypes.map((t, i) => `<span style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--color-text-secondary);">
+          <span style="width: 12px; height: 12px; background: ${colors[i % colors.length]}; border-radius: 2px; display: inline-block;"></span>${t}
+        </span>`).join('')}
+      </div>`;
+
+      // Chart per month
+      last3.forEach(m => {
+        chartHtml += `<div style="margin-bottom: 24px;">
+          <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">${m.label}</h4>`;
+
+        const monthUsers = users.filter(u => {
+          let total = 0;
+          itemTypes.forEach(t => { total += (lookup[u + '|' + t + '|' + m.key] || 0); });
+          return total > 0;
+        });
+
+        if (!monthUsers.length) {
+          chartHtml += `<p style="font-size: 0.8rem; color: var(--color-text-secondary); padding: 8px 0;">No withdrawals this month.</p>`;
+        } else {
+          monthUsers.forEach(u => {
+            const segments = [];
+            let userTotal = 0;
+            itemTypes.forEach((t, i) => {
+              const val = lookup[u + '|' + t + '|' + m.key] || 0;
+              if (val > 0) {
+                segments.push({ type: t, val, color: colors[i % colors.length] });
+                userTotal += val;
+              }
+            });
+            const barWidth = Math.max((userTotal / maxVal) * 100, 8);
+            const shortName = u.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, '').split(' ').pop();
+
+            chartHtml += `<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <span style="width: 80px; font-size: 0.8rem; font-weight: 500; text-align: right; flex-shrink: 0;">${shortName}</span>
+              <div style="flex: 1; display: flex; height: 24px; border-radius: 4px; overflow: hidden; background: #f3f4f6;" title="${u}: ${userTotal} total">
+                ${segments.map(s => `<div style="width: ${(s.val / maxVal) * 100}%; background: ${s.color}; display: flex; align-items: center; justify-content: center;" title="${s.type}: ${s.val}">
+                  ${s.val >= 3 ? `<span style="font-size: 0.65rem; color: white; font-weight: 600;">${s.val}</span>` : ''}
+                </div>`).join('')}
+              </div>
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--brand-orange); width: 36px;">${userTotal}</span>
+            </div>`;
+          });
+        }
+        chartHtml += `</div>`;
+      });
+
+      // All-time leaderboard table
+      if (data.userTotals.length) {
+        chartHtml += `
+          <h4 style="font-size: 0.95rem; font-family: var(--font-display); margin-top: 32px; margin-bottom: 12px; padding-top: 16px; border-top: 2px solid var(--color-warm-border);">All-Time Usage by Scholar</h4>
+          <div class="dash-table-wrap"><table class="dash-table" style="font-size: 0.85rem;">
+            <thead><tr><th>Scholar</th><th>Item Type</th><th>Total Withdrawn</th><th>Withdrawals</th></tr></thead>
+            <tbody>${data.userTotals.map(r => `<tr>
+              <td>${r.user_name.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, '')}</td>
+              <td>${r.item_type}</td>
+              <td><strong>${r.total_qty}</strong></td>
+              <td>${r.withdrawal_count} times</td>
+            </tr>`).join('')}</tbody>
+          </table></div>
+        `;
+      }
+
+      statsDiv.innerHTML = chartHtml;
+      el.appendChild(statsDiv);
+    } catch(e) {
+      // Stats are optional — don't break the page if API fails
+      console.log('Stats load failed:', e);
+    }
   }
 
   // ══════════════════════════════════════
