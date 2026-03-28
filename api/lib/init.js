@@ -88,6 +88,16 @@ function initDB() {
       UNIQUE(project_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS gallery_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT DEFAULT 'team' CHECK(category IN ('lab','fieldwork','events','team')),
+      uploaded_by INTEGER REFERENCES users(id),
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS consumable_types (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,

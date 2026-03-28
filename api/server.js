@@ -21,6 +21,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/docs', require('./routes/docs'));
 app.use('/api/consumables', require('./routes/consumables'));
+app.use('/api/gallery', require('./routes/gallery'));
 
 // ── Health Check ──
 app.get('/api/health', (req, res) => {

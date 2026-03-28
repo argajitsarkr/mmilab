@@ -71,6 +71,49 @@
         .gallery-empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
         .gallery-empty-text { color: var(--color-text-secondary); font-size: 1rem; max-width: 400px; margin: 0 auto; }
 
+        /* ── Upload UI ── */
+        .gallery-upload-bar {
+            display: flex; align-items: center; justify-content: flex-end;
+            margin-bottom: 20px; gap: 12px;
+        }
+        .gallery-upload-btn {
+            padding: 10px 20px; border: 1px solid var(--brand-orange); background: var(--brand-orange);
+            color: white; cursor: pointer; font-family: var(--font-body); font-size: 0.75rem;
+            font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; transition: var(--transition);
+        }
+        .gallery-upload-btn:hover { background: var(--brand-orange-light, #d84315); }
+        .gallery-upload-modal {
+            display: none; position: fixed; inset: 0; z-index: 2500;
+            background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 24px;
+        }
+        .gallery-upload-modal.active { display: flex; }
+        .gallery-upload-form {
+            background: white; border: 1px solid var(--color-warm-border); padding: 32px;
+            max-width: 500px; width: 100%;
+        }
+        .gallery-upload-form h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 24px; }
+        .guf-group { margin-bottom: 16px; }
+        .guf-label { display: block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; }
+        .guf-input, .guf-select {
+            width: 100%; border: 1px solid var(--color-warm-border); padding: 10px 12px;
+            font-family: var(--font-body); font-size: 0.9rem; outline: none;
+        }
+        .guf-input:focus, .guf-select:focus { border-color: var(--brand-orange); }
+        .guf-preview { max-width: 100%; max-height: 200px; margin-top: 8px; display: none; border: 1px solid var(--color-warm-border); }
+        .guf-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .guf-cancel {
+            padding: 10px 20px; border: 1px solid var(--color-warm-border); background: white;
+            cursor: pointer; font-family: var(--font-body); font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase; transition: var(--transition);
+        }
+        .guf-cancel:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+        .gallery-delete-btn {
+            position: absolute; top: 8px; right: 8px; background: rgba(220,38,38,0.9); color: white;
+            border: none; width: 28px; height: 28px; cursor: pointer; font-size: 1rem;
+            display: none; align-items: center; justify-content: center; z-index: 10; border-radius: 3px;
+        }
+        .gallery-item:hover .gallery-delete-btn { display: flex; }
+
         @media (max-width: 1024px) { .gallery-grid { columns: 2; } }
         @media (max-width: 600px) {
             .gallery-grid { columns: 1; }
@@ -95,6 +138,9 @@
     <!-- ═══ GALLERY CONTENT ═══ -->
     <section class="section-warm">
         <div class="container">
+            <div id="galleryUploadBar" class="gallery-upload-bar" style="display: none;">
+                <button class="gallery-upload-btn" id="openUploadBtn">+ Upload Photo</button>
+            </div>
             <div class="gallery-tabs">
                 <button class="gallery-tab active" data-filter="all">All</button>
                 <button class="gallery-tab" data-filter="lab">Lab & Equipment</button>
@@ -104,10 +150,40 @@
             </div>
 
             <div class="gallery-grid" id="galleryGrid">
-                <!-- Gallery items will be rendered by JS from the data below -->
+                <!-- Gallery items will be rendered by JS -->
             </div>
         </div>
     </section>
+
+    <!-- ═══ UPLOAD MODAL ═══ -->
+    <div class="gallery-upload-modal" id="uploadModal">
+        <div class="gallery-upload-form">
+            <h2>Upload Photo to Gallery</h2>
+            <div class="guf-group">
+                <label class="guf-label">Image File *</label>
+                <input type="file" class="guf-input" id="uploadFile" accept="image/jpeg,image/png,image/gif,image/webp">
+                <img class="guf-preview" id="uploadPreview" alt="Preview">
+            </div>
+            <div class="guf-group">
+                <label class="guf-label">Title / Caption *</label>
+                <input type="text" class="guf-input" id="uploadTitle" placeholder="e.g. PCR Setup in the Molecular Biology Suite">
+            </div>
+            <div class="guf-group">
+                <label class="guf-label">Category *</label>
+                <select class="guf-select" id="uploadCategory">
+                    <option value="lab">Lab & Equipment</option>
+                    <option value="fieldwork">Fieldwork</option>
+                    <option value="events">Events & Conferences</option>
+                    <option value="team" selected>Team Moments</option>
+                </select>
+            </div>
+            <div id="uploadError" style="color: #dc2626; font-size: 0.85rem; display: none; margin-bottom: 12px;"></div>
+            <div class="guf-actions">
+                <button class="guf-cancel" id="cancelUploadBtn">Cancel</button>
+                <button class="gallery-upload-btn" id="submitUploadBtn">Upload</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ═══ LIGHTBOX ═══ -->
     <div class="lightbox" id="lightbox">
@@ -119,61 +195,110 @@
     <footer class="footer"><div class="container"><div class="footer-cell" style="text-align: center; border: none;"><span class="text-tag-s">© 2026 MMI LAB · Tripura University<br><span style="color: var(--color-text-muted); display: inline-block; margin-top: 8px;">Site designed by Argajit Sarkar</span></span></div></div></footer>
 
     <script>
-    // ── Gallery Data ──
-    // Add your photos here! Each item needs: src, title, category, date (optional)
-    // Categories: "lab", "fieldwork", "events", "team"
-    const GALLERY_DATA = [
-        { src: "assets/gallery/interns-2025.jpg", title: "Interns from NIT, Agartala and KIT, bhuvneshwar", category: "team", date: "2025" },
-        { src: "assets/gallery/internship-mbb-zoology.jpg", title: "Internship Completion of Students from B.Sc Zoology from MBB Univeristy, Tripura", category: "events", date: "2025" },
-        // Example entries (replace with your actual photos):
-        // { src: "assets/gallery/lab-pcr-setup.jpg", title: "PCR Setup in the Molecular Biology Suite", category: "lab", date: "2025" },
-        // { src: "assets/gallery/field-sample-collection.jpg", title: "Sample collection at Gomati River", category: "fieldwork", date: "2024" },
-        // { src: "assets/gallery/conference-iuis-2019.jpg", title: "IUIS 2019, Beijing — Oral Presentation", category: "events", date: "2019" },
-        // { src: "assets/gallery/team-lab-celebration.jpg", title: "Lab celebration after successful grant", category: "team", date: "2025" },
+    // ── Auth check ──
+    const token = localStorage.getItem('mmilab_token');
+    const user = JSON.parse(localStorage.getItem('mmilab_user') || 'null');
+    const isLoggedIn = !!(token && user);
+
+    // ── Hardcoded fallback images (always shown) ──
+    const STATIC_GALLERY = [
+        { src: "assets/gallery/interns-2025.jpg", title: "Interns from NIT, Agartala and KIT, bhuvneshwar", category: "team", date: "2025", isStatic: true },
+        { src: "assets/gallery/internship-mbb-zoology.jpg", title: "Internship Completion of Students from B.Sc Zoology from MBB Univeristy, Tripura", category: "events", date: "2025", isStatic: true },
     ];
+
+    let allImages = [...STATIC_GALLERY];
+    let currentFilter = 'all';
 
     const grid = document.getElementById('galleryGrid');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxCaption = document.getElementById('lightboxCaption');
 
+    // ── Show upload bar for logged-in users ──
+    if (isLoggedIn) {
+        document.getElementById('galleryUploadBar').style.display = 'flex';
+    }
+
+    // ── Fetch images from API and merge with static ──
+    async function loadGalleryImages() {
+        try {
+            const res = await fetch('/api/gallery');
+            if (res.ok) {
+                const apiImages = await res.json();
+                const dynamicImages = apiImages.map(img => ({
+                    id: img.id,
+                    src: `/api/gallery/image/${img.filename}`,
+                    title: img.title,
+                    category: img.category,
+                    date: new Date(img.uploaded_at).getFullYear().toString(),
+                    uploadedBy: img.uploaded_by_name || '',
+                    uploadedById: img.uploaded_by,
+                    isStatic: false
+                }));
+                allImages = [...dynamicImages, ...STATIC_GALLERY];
+            }
+        } catch (e) { /* API unavailable, use static only */ }
+        renderGallery(currentFilter);
+    }
+
     function renderGallery(filter) {
-        const items = filter === 'all' ? GALLERY_DATA : GALLERY_DATA.filter(d => d.category === filter);
+        currentFilter = filter;
+        const items = filter === 'all' ? allImages : allImages.filter(d => d.category === filter);
 
         if (items.length === 0) {
             grid.innerHTML = `<div class="gallery-empty">
-                <div class="gallery-empty-icon">📷</div>
+                <div class="gallery-empty-icon">&#x1F4F7;</div>
                 <div class="gallery-empty-text">
-                    <strong>Photos coming soon!</strong><br>
-                    Lab photos, fieldwork images, and event snapshots will appear here.<br><br>
-                    <span style="font-size: 0.8rem; color: var(--color-text-secondary);">To add photos, place image files in <code>assets/gallery/</code> and update the GALLERY_DATA array in this page.</span>
+                    <strong>No photos in this category yet.</strong><br>
+                    ${isLoggedIn ? 'Click <strong>+ Upload Photo</strong> above to add images.' : 'Lab photos, fieldwork images, and event snapshots will appear here.'}
                 </div>
             </div>`;
             return;
         }
 
-        grid.innerHTML = items.map(item => `
+        const canDelete = isLoggedIn && user;
+        grid.innerHTML = items.map(item => {
+            const showDelete = canDelete && !item.isStatic && (user.role === 'pi' || item.uploadedById === user.id);
+            return `
             <div class="gallery-item" data-src="${item.src}" data-title="${item.title}" data-category="${item.category}">
+                ${showDelete ? `<button class="gallery-delete-btn" data-id="${item.id}" title="Delete photo">&#x2715;</button>` : ''}
                 <img src="${item.src}" alt="${item.title}" loading="lazy">
                 <div class="gallery-caption">
                     <div class="gallery-caption-title">${item.title}</div>
-                    <div class="gallery-caption-meta">${item.date || ''} · ${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</div>
+                    <div class="gallery-caption-meta">${item.date || ''} · ${item.category.charAt(0).toUpperCase() + item.category.slice(1)}${item.uploadedBy ? ' · by ' + item.uploadedBy : ''}</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
-        // Add click handlers for lightbox
+        // Lightbox click handlers
         grid.querySelectorAll('.gallery-item').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.gallery-delete-btn')) return;
                 lightboxImg.src = item.dataset.src;
                 lightboxCaption.textContent = item.dataset.title;
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
             });
         });
+
+        // Delete handlers
+        grid.querySelectorAll('.gallery-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm('Delete this photo from the gallery?')) return;
+                try {
+                    const res = await fetch(`/api/gallery/${btn.dataset.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (res.ok) { loadGalleryImages(); }
+                    else { const d = await res.json(); alert(d.error || 'Delete failed'); }
+                } catch (err) { alert('Error deleting image'); }
+            });
+        });
     }
 
-    // Tab switching
+    // ── Tab switching ──
     document.querySelectorAll('.gallery-tab').forEach(tab => {
         tab.addEventListener('click', function() {
             document.querySelectorAll('.gallery-tab').forEach(t => t.classList.remove('active'));
@@ -182,26 +307,90 @@
         });
     });
 
-    // Close lightbox
+    // ── Lightbox controls ──
     document.getElementById('lightboxClose').addEventListener('click', () => {
-        lightbox.classList.remove('active');
-        document.body.style.overflow = '';
+        lightbox.classList.remove('active'); document.body.style.overflow = '';
     });
     lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            lightbox.classList.remove('active');
-            document.body.style.overflow = '';
-        }
+        if (e.target === lightbox) { lightbox.classList.remove('active'); document.body.style.overflow = ''; }
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            lightbox.classList.remove('active');
-            document.body.style.overflow = '';
+            lightbox.classList.remove('active'); document.body.style.overflow = '';
+            uploadModal.classList.remove('active');
         }
     });
 
-    // Initial render
-    renderGallery('all');
+    // ── Upload Modal ──
+    const uploadModal = document.getElementById('uploadModal');
+    const uploadFile = document.getElementById('uploadFile');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const uploadError = document.getElementById('uploadError');
+
+    if (isLoggedIn) {
+        document.getElementById('openUploadBtn').addEventListener('click', () => {
+            uploadModal.classList.add('active');
+            uploadError.style.display = 'none';
+        });
+        document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+            uploadModal.classList.remove('active');
+            uploadFile.value = ''; uploadPreview.style.display = 'none';
+            document.getElementById('uploadTitle').value = '';
+        });
+        uploadModal.addEventListener('click', (e) => {
+            if (e.target === uploadModal) uploadModal.classList.remove('active');
+        });
+
+        // Image preview
+        uploadFile.addEventListener('change', () => {
+            if (uploadFile.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => { uploadPreview.src = e.target.result; uploadPreview.style.display = 'block'; };
+                reader.readAsDataURL(uploadFile.files[0]);
+            } else { uploadPreview.style.display = 'none'; }
+        });
+
+        // Submit upload
+        document.getElementById('submitUploadBtn').addEventListener('click', async () => {
+            uploadError.style.display = 'none';
+            const file = uploadFile.files[0];
+            const title = document.getElementById('uploadTitle').value.trim();
+            const category = document.getElementById('uploadCategory').value;
+
+            if (!file) { uploadError.textContent = 'Please select an image file.'; uploadError.style.display = 'block'; return; }
+            if (!title) { uploadError.textContent = 'Please enter a title.'; uploadError.style.display = 'block'; return; }
+
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('title', title);
+            formData.append('category', category);
+
+            const btn = document.getElementById('submitUploadBtn');
+            btn.disabled = true; btn.textContent = 'Uploading...';
+
+            try {
+                const res = await fetch('/api/gallery', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+                uploadModal.classList.remove('active');
+                uploadFile.value = ''; uploadPreview.style.display = 'none';
+                document.getElementById('uploadTitle').value = '';
+                loadGalleryImages();
+            } catch (err) {
+                uploadError.textContent = err.message; uploadError.style.display = 'block';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Upload';
+            }
+        });
+    }
+
+    // ── Initial load ──
+    loadGalleryImages();
     </script>
     <script src="js/main.js"></script>
 </body>

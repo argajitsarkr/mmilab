@@ -495,22 +495,51 @@
   }
 
   // ── Modal System ──
-  function showModal(title, content, actions) {
+  function showModal(title, content, actions, opts = {}) {
     let overlay = document.querySelector('.dash-modal-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.className = 'dash-modal-overlay';
       document.body.appendChild(overlay);
     }
+    const minimizable = opts.minimizable !== false; // default true
     overlay.innerHTML = `<div class="dash-modal">
-      <h2>${title}</h2>
-      <div>${content}</div>
+      <div class="dash-modal-header">
+        <h2>${title}</h2>
+        <div class="dash-modal-header-btns">
+          ${minimizable ? '<button class="dash-modal-minimize-btn" title="Minimize">&#x2015;</button>' : ''}
+          <button class="dash-modal-close-btn" title="Close">&#x2715;</button>
+        </div>
+      </div>
+      <div class="dash-modal-body">${content}</div>
       <div class="dash-modal-actions">${actions || ''}</div>
     </div>`;
+    overlay.classList.remove('minimized');
     overlay.classList.add('active');
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+    overlay.querySelector('.dash-modal-close-btn').addEventListener('click', closeModal);
+    if (minimizable) {
+      overlay.querySelector('.dash-modal-minimize-btn').addEventListener('click', () => minimizeModal());
+      // Click on minimized header to restore
+      overlay.querySelector('.dash-modal-header').addEventListener('click', (e) => {
+        if (overlay.classList.contains('minimized') && !e.target.closest('.dash-modal-close-btn')) {
+          restoreModal();
+        }
+      });
+    }
   }
-  function closeModal() { document.querySelector('.dash-modal-overlay')?.classList.remove('active'); }
+  function closeModal() {
+    const overlay = document.querySelector('.dash-modal-overlay');
+    if (overlay) { overlay.classList.remove('active', 'minimized'); }
+  }
+  function minimizeModal() {
+    const overlay = document.querySelector('.dash-modal-overlay');
+    if (overlay) { overlay.classList.remove('active'); overlay.classList.add('minimized'); }
+  }
+  function restoreModal() {
+    const overlay = document.querySelector('.dash-modal-overlay');
+    if (overlay) { overlay.classList.remove('minimized'); overlay.classList.add('active'); }
+  }
 
   // deleteStrain is now on window.dashApp below
 
@@ -1099,7 +1128,7 @@
   // ── GLOBAL ACTIONS (exposed to window)
   // ══════════════════════════════════════
   window.dashApp = {
-    closeModal,
+    closeModal, minimizeModal, restoreModal,
 
     async addStrain() {
       const organism = document.getElementById('newOrganism').value.trim();

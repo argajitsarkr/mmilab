@@ -129,11 +129,42 @@
     z-index: 200; align-items: center; justify-content: center; padding: 24px;
 }
 .dash-modal-overlay.active { display: flex; }
+.dash-modal-overlay.minimized { display: block; background: none; pointer-events: none; inset: auto; bottom: 0; right: 24px; left: auto; top: auto; }
 .dash-modal {
     background: white; border: var(--border-light); padding: 32px;
     max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto;
+    transition: all 0.25s ease;
 }
-.dash-modal h2 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; }
+.dash-modal-overlay.minimized .dash-modal {
+    pointer-events: auto; max-width: 320px; padding: 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15); border: 1px solid var(--brand-orange);
+    max-height: none; overflow: hidden;
+}
+.dash-modal-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.dash-modal-header h2 { font-family: var(--font-display); font-size: 1.5rem; margin: 0; flex: 1; }
+.dash-modal-header-btns { display: flex; gap: 4px; }
+.dash-modal-header-btns button {
+    background: none; border: 1px solid var(--color-warm-border, #e5e1dc); cursor: pointer;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: var(--color-text-secondary); transition: var(--transition); border-radius: 4px;
+}
+.dash-modal-header-btns button:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+.dash-modal-body, .dash-modal-actions { transition: all 0.25s ease; }
+.dash-modal-overlay.minimized .dash-modal-body,
+.dash-modal-overlay.minimized .dash-modal-actions { display: none; }
+.dash-modal-overlay.minimized .dash-modal-header {
+    padding: 12px 16px; cursor: pointer; background: var(--brand-orange); border: none;
+}
+.dash-modal-overlay.minimized .dash-modal-header h2 {
+    font-size: 0.8rem; color: white; font-family: var(--font-body); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dash-modal-overlay.minimized .dash-modal-header-btns button {
+    color: white; border-color: rgba(255,255,255,0.3); width: 28px; height: 28px; font-size: 0.85rem;
+}
+.dash-modal-overlay.minimized .dash-modal-header-btns button:hover { background: rgba(255,255,255,0.15); }
 .dash-modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
 
 /* ── QR Code ── */
