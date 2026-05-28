@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// ── GET /api/projects — List all projects ──
+// ── GET /api/projects - List all projects ──
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
   const projects = db.prepare(`SELECT p.*, GROUP_CONCAT(u.name) as member_names 
@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
   res.json(projects);
 });
 
-// ── GET /api/projects/:id — Single project ──
+// ── GET /api/projects/:id - Single project ──
 router.get('/:id', (req, res) => {
   const db = req.app.locals.db;
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
@@ -30,7 +30,7 @@ router.get('/:id', (req, res) => {
   res.json({ ...project, members });
 });
 
-// ── POST /api/projects — Create project (PI only) ──
+// ── POST /api/projects - Create project (PI only) ──
 router.post('/', piOnly, (req, res) => {
   const db = req.app.locals.db;
   const { title, funding_agency, start_date, end_date, status, description, member_ids } = req.body;
@@ -49,7 +49,7 @@ router.post('/', piOnly, (req, res) => {
   res.status(201).json(project);
 });
 
-// ── PUT /api/projects/:id — Update project (PI only) ──
+// ── PUT /api/projects/:id - Update project (PI only) ──
 router.put('/:id', piOnly, (req, res) => {
   const db = req.app.locals.db;
   const { title, funding_agency, start_date, end_date, status, description, member_ids } = req.body;

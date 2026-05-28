@@ -6,7 +6,7 @@ const router = express.Router();
 // All routes require auth
 router.use(authMiddleware);
 
-// ── GET /api/strains — List all inventory (with filters & search) ──
+// ── GET /api/strains - List all inventory (with filters & search) ──
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
   const { search, organism, stockType, status, sort } = req.query;
@@ -42,14 +42,14 @@ router.get('/', (req, res) => {
   res.json(inventory);
 });
 
-// ── GET /api/strains/organisms — Get unique organism names for dropdown ──
+// ── GET /api/strains/organisms - Get unique organism names for dropdown ──
 router.get('/organisms', (req, res) => {
   const db = req.app.locals.db;
   const organisms = db.prepare(`SELECT DISTINCT Organism FROM bacterial_inventory ORDER BY Organism ASC`).all();
   res.json(organisms.map(o => o.Organism));
 });
 
-// ── GET /api/strains/:id — Single vial detail ──
+// ── GET /api/strains/:id - Single vial detail ──
 router.get('/:id', (req, res) => {
   const db = req.app.locals.db;
   const vial = db.prepare(`SELECT b.*, u.name as added_by_name FROM bacterial_inventory b LEFT JOIN users u ON b.added_by = u.id WHERE b.Vial_ID = ?`).get(req.params.id);
@@ -57,7 +57,7 @@ router.get('/:id', (req, res) => {
   res.json(vial);
 });
 
-// ── POST /api/strains — Add new vial ──
+// ── POST /api/strains - Add new vial ──
 router.post('/', (req, res) => {
   const db = req.app.locals.db;
   const { Vial_ID, Organism, Phenotype_Notes, Stock_Type, Freezer_Location, notes } = req.body;
@@ -76,7 +76,7 @@ router.post('/', (req, res) => {
   res.status(201).json(vial);
 });
 
-// ── PUT /api/strains/:id — Edit vial ──
+// ── PUT /api/strains/:id - Edit vial ──
 router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const { Organism, Phenotype_Notes, Stock_Type, Freezer_Location } = req.body;
@@ -87,7 +87,7 @@ router.put('/:id', (req, res) => {
   res.json(vial);
 });
 
-// ── POST /api/strains/:id/checkout — Check out a vial ──
+// ── POST /api/strains/:id/checkout - Check out a vial ──
 router.post('/:id/checkout', (req, res) => {
   const db = req.app.locals.db;
   const vial = db.prepare('SELECT * FROM bacterial_inventory WHERE Vial_ID = ?').get(req.params.id);
@@ -101,7 +101,7 @@ router.post('/:id/checkout', (req, res) => {
   res.json({ message: 'Vial checked out successfully' });
 });
 
-// ── POST /api/strains/:id/checkin — Check in a vial ──
+// ── POST /api/strains/:id/checkin - Check in a vial ──
 router.post('/:id/checkin', (req, res) => {
   const db = req.app.locals.db;
   const { notes } = req.body;
@@ -112,7 +112,7 @@ router.post('/:id/checkin', (req, res) => {
   res.json({ message: 'Vial checked in successfully' });
 });
 
-// ── POST /api/strains/:id/deplete — Mark vial as depleted ──
+// ── POST /api/strains/:id/deplete - Mark vial as depleted ──
 router.post('/:id/deplete', (req, res) => {
   const db = req.app.locals.db;
   db.prepare('UPDATE bacterial_inventory SET Status = ? WHERE Vial_ID = ?').run('Depleted', req.params.id);
@@ -120,14 +120,14 @@ router.post('/:id/deplete', (req, res) => {
   res.json({ message: 'Vial marked as depleted' });
 });
 
-// ── GET /api/strains/:id/history — Audit trail ──
+// ── GET /api/strains/:id/history - Audit trail ──
 router.get('/:id/history', (req, res) => {
   const db = req.app.locals.db;
   const logs = db.prepare(`SELECT sl.*, u.name as user_name FROM stock_log sl LEFT JOIN users u ON sl.user_id = u.id WHERE sl.vial_id = ? ORDER BY sl.timestamp DESC`).all(req.params.id);
   res.json(logs);
 });
 
-// ── GET /api/strains/:id/qrcode — Generate QR code ──
+// ── GET /api/strains/:id/qrcode - Generate QR code ──
 router.get('/:id/qrcode', async (req, res) => {
   const db = req.app.locals.db;
   const vial = db.prepare('SELECT * FROM bacterial_inventory WHERE Vial_ID = ?').get(req.params.id);

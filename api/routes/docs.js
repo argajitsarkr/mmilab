@@ -56,7 +56,7 @@ async function extractText(filePath, mimetype, originalName) {
       return result.value;
     }
 
-    // Legacy .doc — mammoth cannot read these; try reading raw text as fallback
+    // Legacy .doc - mammoth cannot read these; try reading raw text as fallback
     if (ext === '.doc' || mimetype === 'application/msword') {
       console.log(`[DOC INDEX] WARNING: Legacy .doc format detected. Attempting raw text extraction (limited).`);
       try {

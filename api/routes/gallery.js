@@ -32,7 +32,7 @@ const upload = multer({
   }
 });
 
-// GET /api/gallery — list all images (public, no auth required)
+// GET /api/gallery - list all images (public, no auth required)
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
   const images = db.prepare(`
@@ -44,14 +44,14 @@ router.get('/', (req, res) => {
   res.json(images);
 });
 
-// GET /api/gallery/image/:filename — serve image file
+// GET /api/gallery/image/:filename - serve image file
 router.get('/image/:filename', (req, res) => {
   const filePath = path.join(GALLERY_DIR, req.params.filename);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Image not found' });
   res.sendFile(filePath);
 });
 
-// POST /api/gallery — upload new image (auth required)
+// POST /api/gallery - upload new image (auth required)
 router.post('/', authMiddleware, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image file provided' });
   const { title, category } = req.body;
@@ -69,7 +69,7 @@ router.post('/', authMiddleware, upload.single('image'), (req, res) => {
   res.json({ id: result.lastInsertRowid, message: 'Image uploaded successfully' });
 });
 
-// DELETE /api/gallery/:id — delete image (creator or PI)
+// DELETE /api/gallery/:id - delete image (creator or PI)
 router.delete('/:id', authMiddleware, (req, res) => {
   const db = req.app.locals.db;
   const image = db.prepare('SELECT * FROM gallery_images WHERE id = ?').get(req.params.id);

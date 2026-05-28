@@ -1,5 +1,5 @@
 ================================================================
-  MMI Lab — Standard Operating Procedure (SOP)
+  MMI Lab - Standard Operating Procedure (SOP)
   Site Deployment & Update Guide
   Last updated: March 2026
 ================================================================
@@ -21,9 +21,9 @@ TABLE OF CONTENTS
   Develop & commit         Central storage          Pulls & runs containers
 
   Server runs THREE Docker containers:
-    mmilab-nginx   — Serves static HTML/CSS/JS + proxies /api/ requests
-    mmilab-api     — Node.js backend + SQLite database
-    mmilab-tunnel  — Cloudflare Tunnel (public HTTPS URL, no domain needed)
+    mmilab-nginx   - Serves static HTML/CSS/JS + proxies /api/ requests
+    mmilab-api     - Node.js backend + SQLite database
+    mmilab-tunnel  - Cloudflare Tunnel (public HTTPS URL, no domain needed)
 
   Persistent data (survives container rebuilds):
     mmilab-db volume       → SQLite database
@@ -73,7 +73,7 @@ TABLE OF CONTENTS
   This gives your site a public URL like:
     https://mmilab-tripura.YOUR-SUBDOMAIN.cfargotunnel.com
   or a custom name you choose. Free, automatic HTTPS, works
-  behind any firewall — no port forwarding needed.
+  behind any firewall - no port forwarding needed.
 
   ONE-TIME SETUP (do this once on the server):
   -----------------------------------------------
@@ -116,7 +116,7 @@ TABLE OF CONTENTS
   NOTES:
     - The tunnel survives server reboots (restart: unless-stopped)
     - If the token is missing/invalid, only the tunnel container
-      fails — nginx and api still work on localhost:8080
+      fails - nginx and api still work on localhost:8080
     - When you get a real domain later, you can route the tunnel
       to your custom domain in the Cloudflare dashboard
     - Free tier supports unlimited bandwidth
@@ -207,7 +207,7 @@ TABLE OF CONTENTS
   NEW DEFAULT PASSWORD:  MMI@Tripura2026#
 
   All users will be FORCED to change their password on first login.
-  The forced password change modal cannot be dismissed — they must
+  The forced password change modal cannot be dismissed - they must
   set a personal password (minimum 8 characters) before accessing
   the dashboard.
 
@@ -256,5 +256,5 @@ TABLE OF CONTENTS
     docker compose up -d
 
 ================================================================
-  End of SOP — MMI Lab, Tripura University
+  End of SOP - MMI Lab, Tripura University
 ================================================================

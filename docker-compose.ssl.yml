@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════
-# MMI Lab — SSL Override for docker-compose
+# MMI Lab - SSL Override for docker-compose
 # ═══════════════════════════════════════════════════════════════
 # Usage (AFTER obtaining SSL certs):
 #   docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d

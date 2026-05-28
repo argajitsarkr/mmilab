@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// ── GET /api/dashboard/:userId — Get scholar dashboard ──
+// ── GET /api/dashboard/:userId - Get scholar dashboard ──
 router.get('/:userId', (req, res) => {
   const db = req.app.locals.db;
   const userId = parseInt(req.params.userId);
@@ -49,7 +49,7 @@ router.get('/:userId', (req, res) => {
   res.json({ user, profile, stockActivity, checkedOut, projects });
 });
 
-// ── PUT /api/dashboard/:userId — Update own dashboard ──
+// ── PUT /api/dashboard/:userId - Update own dashboard ──
 router.put('/:userId', (req, res) => {
   const db = req.app.locals.db;
   const userId = parseInt(req.params.userId);
@@ -77,7 +77,7 @@ router.put('/:userId', (req, res) => {
   res.json({ message: 'Dashboard updated' });
 });
 
-// ── GET /api/dashboard/pi/overview — PI overview (PI only) ──
+// ── GET /api/dashboard/pi/overview - PI overview (PI only) ──
 router.get('/pi/overview', piOnly, (req, res) => {
   const db = req.app.locals.db;
 

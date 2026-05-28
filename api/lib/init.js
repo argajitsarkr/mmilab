@@ -210,13 +210,13 @@ function initDB() {
       db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(pwMigration);
       console.log('MIGRATION DONE: Individual passwords set. No forced reset.');
     } else {
-      console.log('SKIP: USER_PASSWORDS not found in .env — passwords unchanged.');
+      console.log('SKIP: USER_PASSWORDS not found in .env - passwords unchanged.');
     }
   }
 
   // ── Seed Users if empty ──
   // Passwords come from USER_PASSWORDS in .env (gitignored). Falls back to 'ChangeMe@2026'.
-  // Database persists on Docker volume — seed only runs on first-ever launch.
+  // Database persists on Docker volume - seed only runs on first-ever launch.
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
     console.log('Seeding default users...');

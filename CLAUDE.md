@@ -15,46 +15,46 @@ Website and internal management dashboard for the **Molecular Microbiology & Imm
 
 ### Docker Services
 ```
-mmilab-nginx    — nginx:alpine — serves static site + reverse proxy
-mmilab-api      — node:20-alpine — Express API + SQLite
-mmilab-tunnel   — cloudflared — free Cloudflare quick tunnel for public HTTPS
+mmilab-nginx    - nginx:alpine - serves static site + reverse proxy
+mmilab-api      - node:20-alpine - Express API + SQLite
+mmilab-tunnel   - cloudflared - free Cloudflare quick tunnel for public HTTPS
 ```
 
 ### Key Files
 ```
-index.html              — Public homepage
-team.html               — Team members grid (3-col CSS grid, divs not <a> tags)
-gallery.html            — Photo gallery with lightbox + category filters
-dashboard.html          — SPA shell (sidebar nav, all pages rendered by JS)
-login.html              — JWT-based login
-js/dashboard-app.js     — Core dashboard logic (all pages, modals, API calls)
-css/styles.css          — Global styles (CSS variables, warm earth-tone theme)
-css/profile.css         — Scholar card styles
+index.html              - Public homepage
+team.html               - Team members grid (3-col CSS grid, divs not <a> tags)
+gallery.html            - Photo gallery with lightbox + category filters
+dashboard.html          - SPA shell (sidebar nav, all pages rendered by JS)
+login.html              - JWT-based login
+js/dashboard-app.js     - Core dashboard logic (all pages, modals, API calls)
+css/styles.css          - Global styles (CSS variables, warm earth-tone theme)
+css/profile.css         - Scholar card styles
 
-api/server.js           — Express entry point
-api/lib/init.js         — SQLite schema, migrations, user seeding
-api/routes/auth.js      — Login, JWT, password change/reset, force-change
-api/routes/strains.js   — Bacterial stock CRUD, checkout/checkin, QR codes
-api/routes/docs.js      — Document upload, FTS5 search, download, delete
-api/routes/projects.js  — Funded project management
-api/routes/dashboard.js — Scholar profiles, PI overview
+api/server.js           - Express entry point
+api/lib/init.js         - SQLite schema, migrations, user seeding
+api/routes/auth.js      - Login, JWT, password change/reset, force-change
+api/routes/strains.js   - Bacterial stock CRUD, checkout/checkin, QR codes
+api/routes/docs.js      - Document upload, FTS5 search, download, delete
+api/routes/projects.js  - Funded project management
+api/routes/dashboard.js - Scholar profiles, PI overview
 
-docker-compose.yml      — Production orchestration
-api/Dockerfile          — Node 20 Alpine + build tools for native modules
-nginx/default.conf      — Static files + API proxy config
-.env                    — HOST_PORT, JWT_SECRET, TUNNEL_TOKEN (not in git)
-deploy.sh               — One-command server update: git pull + docker compose up
-get-url.sh              — Prints current Cloudflare tunnel URL
+docker-compose.yml      - Production orchestration
+api/Dockerfile          - Node 20 Alpine + build tools for native modules
+nginx/default.conf      - Static files + API proxy config
+.env                    - HOST_PORT, JWT_SECRET, TUNNEL_TOKEN (not in git)
+deploy.sh               - One-command server update: git pull + docker compose up
+get-url.sh              - Prints current Cloudflare tunnel URL
 ```
 
 ### Database Schema (SQLite)
-- `users` — id, name, email, password_hash, role (pi/scholar), must_change_password
-- `bacterial_inventory` — Vial_ID (PK), Organism, Phenotype_Notes, Stock_Type, Freezer_Location, Status, added_by
-- `stock_log` — Tracks checkout/checkin/depleted/added actions per vial
-- `documents` — Uploaded files with tag, folder, project_id; FTS5 via `document_search`
-- `projects` — Funded projects (DBT, ICMR, DST, etc.) with members
-- `scholar_profiles` — Research topics, enrollment dates, experiments
-- `_migrations` — Tracks one-time migration keys (e.g., pw_reset_v3)
+- `users` - id, name, email, password_hash, role (pi/scholar), must_change_password
+- `bacterial_inventory` - Vial_ID (PK), Organism, Phenotype_Notes, Stock_Type, Freezer_Location, Status, added_by
+- `stock_log` - Tracks checkout/checkin/depleted/added actions per vial
+- `documents` - Uploaded files with tag, folder, project_id; FTS5 via `document_search`
+- `projects` - Funded projects (DBT, ICMR, DST, etc.) with members
+- `scholar_profiles` - Research topics, enrollment dates, experiments
+- `_migrations` - Tracks one-time migration keys (e.g., pw_reset_v3)
 
 ## Important Patterns
 
@@ -118,6 +118,6 @@ All functions called from inline `onclick` handlers **must** be exposed on `wind
 ## Pending / Future Work
 - **Domain**: Planning to buy from Hostinger and/or get subdomain from tripurauniv.ac.in
 - **SSL**: `docker-compose.ssl.yml` and `nginx/ssl.conf` ready for Let's Encrypt once domain is set
-- **Google indexing**: `robots.txt`, `sitemap.xml`, SEO meta tags already added — need to submit to Google Search Console after domain
+- **Google indexing**: `robots.txt`, `sitemap.xml`, SEO meta tags already added - need to submit to Google Search Console after domain
 - **Document indexing**: .docx extraction works via mammoth; legacy .doc has limited support; scanned/image PDFs won't extract text (would need OCR)
-- **Quick tunnel URL changes on restart** — will be fixed once named tunnel + domain is configured
+- **Quick tunnel URL changes on restart** - will be fixed once named tunnel + domain is configured

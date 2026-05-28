@@ -1,12 +1,12 @@
 # ── Environment & Secrets ──
 .env
 
-# ── Database (never commit — lives in Docker volume on server) ──
+# ── Database (never commit - lives in Docker volume on server) ──
 api/db/mmilab.db
 api/db/mmilab.db-shm
 api/db/mmilab.db-wal
 
-# ── Uploaded files (never commit — lives in Docker volume on server) ──
+# ── Uploaded files (never commit - lives in Docker volume on server) ──
 api/uploads/
 
 # ── Node modules ──

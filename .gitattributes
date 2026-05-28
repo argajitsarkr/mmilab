@@ -1,7 +1,7 @@
 # Normalise line endings to LF on the server (Linux)
 * text=auto eol=lf
 
-# Binary files — never mess with line endings
+# Binary files - never mess with line endings
 *.png binary
 *.jpg binary
 *.jpeg binary

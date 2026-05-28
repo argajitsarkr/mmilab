@@ -127,7 +127,7 @@
     const html = `
       <div class="dash-header" style="margin-bottom: 32px;">
         <h1>Welcome, ${user.role === 'pi' ? 'Dr. Bhattacharjee' : user.name.split(' ').pop()}</h1>
-        <p>Bacteria Stock Registry — Standard Operating Procedure (SOP)</p>
+        <p>Bacteria Stock Registry - Standard Operating Procedure (SOP)</p>
       </div>
 
       <div style="background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -144,8 +144,8 @@
             We have <strong>one -80°C freezer</strong> with two storage areas:
           </p>
           <ul style="color: var(--color-text-secondary); font-size: 0.85rem; margin-left: 20px; line-height: 1.6;">
-            <li><strong>Top Shelf</strong> — Samples are stored here (cryovials in labeled boxes).</li>
-            <li><strong>Below Top Shelf</strong> — Additional storage area for samples.</li>
+            <li><strong>Top Shelf</strong> - Samples are stored here (cryovials in labeled boxes).</li>
+            <li><strong>Below Top Shelf</strong> - Additional storage area for samples.</li>
           </ul>
           <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6; margin-top: 8px;">
             When adding stock, always select the correct <strong>Shelf</strong>, then specify the <strong>Box</strong> (e.g., Box W1, Box M1) and <strong>Grid Position</strong> (e.g., A1, B3).
@@ -186,7 +186,7 @@
               Depleting & Deleting
             </h4>
             <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
-              <li>If a vial is emptied, contaminated, or destroyed — <strong>do not delete</strong> the record. Click <strong>"Mark Depleted"</strong> instead to keep the history.</li>
+              <li>If a vial is emptied, contaminated, or destroyed - <strong>do not delete</strong> the record. Click <strong>"Mark Depleted"</strong> instead to keep the history.</li>
               <li><strong style="color: #dc2626;">Never deplete a Master Stock</strong> without permission from the PI.</li>
               <li>Only the <strong>person who added the entry</strong> (or the PI) can delete it.</li>
             </ul>
@@ -212,15 +212,15 @@
 
         <p style="color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.6;">
           The Consumables Tracker manages lab supplies like Petri plates, syringe filters, well plates, etc.
-          Every withdrawal is permanently logged with your name and timestamp. <strong>You cannot edit or delete entries</strong> — if you make a mistake, submit a correction instead.
+          Every withdrawal is permanently logged with your name and timestamp. <strong>You cannot edit or delete entries</strong> - if you make a mistake, submit a correction instead.
         </p>
 
         <div style="background: rgba(209, 90, 43, 0.06); border: 1px solid var(--color-warm-border); padding: 16px; border-radius: 4px; margin-bottom: 24px;">
           <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Box Statuses</h4>
           <ul style="color: var(--color-text-secondary); font-size: 0.85rem; margin-left: 20px; line-height: 1.6;">
-            <li><span class="badge badge-available">Active</span> — Open for withdrawal. Use these boxes.</li>
-            <li><span class="badge badge-in-use">Locked</span> — Reserved or not yet opened. Cannot withdraw from these.</li>
-            <li><span class="badge badge-depleted">Empty</span> — Fully consumed. View-only for audit purposes.</li>
+            <li><span class="badge badge-available">Active</span> - Open for withdrawal. Use these boxes.</li>
+            <li><span class="badge badge-in-use">Locked</span> - Reserved or not yet opened. Cannot withdraw from these.</li>
+            <li><span class="badge badge-depleted">Empty</span> - Fully consumed. View-only for audit purposes.</li>
           </ul>
           <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6; margin-top: 8px;">
             Multiple boxes of the same item can be <strong>Active</strong> at once (e.g. lab stock + personal purchase shared with the group).
@@ -252,7 +252,7 @@
               <li>Entries are <strong>permanent</strong>. You cannot edit or delete any log.</li>
               <li>If you made a mistake (e.g. entered 50 instead of 5, or broke plates), click <strong>"Correction"</strong> on that box.</li>
               <li>Enter a <strong>positive number</strong> to return items, or <strong>negative</strong> to record additional usage/breakage.</li>
-              <li>A <strong>written reason is required</strong> — both the original entry and the correction stay in the audit trail.</li>
+              <li>A <strong>written reason is required</strong> - both the original entry and the correction stay in the audit trail.</li>
             </ul>
           </div>
 
@@ -262,9 +262,9 @@
               Viewing Usage History
             </h4>
             <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
-              <li>Click <strong>"Ledger"</strong> on any box to see its full history — who took what, when, and how much was left.</li>
+              <li>Click <strong>"Ledger"</strong> on any box to see its full history - who took what, when, and how much was left.</li>
               <li>Click <strong>"View Full Ledger"</strong> at the top to see all activity across all item types.</li>
-              <li>Everyone can view all logs — <strong>transparency and accountability</strong> is the goal.</li>
+              <li>Everyone can view all logs - <strong>transparency and accountability</strong> is the goal.</li>
             </ul>
           </div>
 
@@ -274,8 +274,8 @@
               Rules & Anti-Tampering
             </h4>
             <ul style="color: var(--color-text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.6;">
-              <li><strong style="color: #dc2626;">Never forget to log</strong> — every item you take must be recorded immediately.</li>
-              <li>Timestamps are set by the <strong>server</strong>, not your device — no backdating possible.</li>
+              <li><strong style="color: #dc2626;">Never forget to log</strong> - every item you take must be recorded immediately.</li>
+              <li>Timestamps are set by the <strong>server</strong>, not your device - no backdating possible.</li>
               <li>Only the lab manager can add new boxes, activate/lock them, or mark them empty.</li>
               <li>If a box runs out during your withdrawal, it is automatically marked <span class="badge badge-depleted">Empty</span>.</li>
             </ul>
@@ -325,9 +325,9 @@
       }));
       if (maxVal === 0) maxVal = 1;
 
-      // Monthly chart — stacked horizontal bars per user per month
+      // Monthly chart - stacked horizontal bars per user per month
       let chartHtml = `
-        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">Consumables Usage — Last 3 Months</h3>
+        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">Consumables Usage - Last 3 Months</h3>
         <p style="color: var(--color-text-secondary); margin-bottom: 24px; font-size: 0.85rem;">Month-wise withdrawal totals per scholar, broken down by item type.</p>
       `;
 
@@ -398,7 +398,7 @@
       statsDiv.innerHTML = chartHtml;
       el.appendChild(statsDiv);
     } catch(e) {
-      // Stats are optional — don't break the page if API fails
+      // Stats are optional - don't break the page if API fails
       console.log('Stats load failed:', e);
     }
   }
@@ -474,10 +474,10 @@
         return `<tr>
         <td><strong>${s.Vial_ID}</strong></td>
         <td><em>${s.Organism}</em></td>
-        <td><span style="font-size: 0.8rem;">${s.Phenotype_Notes || '—'}</span></td>
-        <td><span style="font-size: 0.8rem;">${s.Freezer_Location || '—'}</span></td>
+        <td><span style="font-size: 0.8rem;">${s.Phenotype_Notes || '-'}</span></td>
+        <td><span style="font-size: 0.8rem;">${s.Freezer_Location || '-'}</span></td>
         <td><span class="badge ${s.Stock_Type === 'Master' ? 'badge-depleted' : 'badge-active'}" style="opacity:0.8">${s.Stock_Type}</span></td>
-        <td><span style="font-size: 0.8rem;">${s.added_by_name || '—'}</span></td>
+        <td><span style="font-size: 0.8rem;">${s.added_by_name || '-'}</span></td>
         <td>
           <div style="font-weight: 600; margin-bottom: 4px; font-size: 0.7rem; color: var(--color-text-secondary);">
             <span class="badge badge-${s.Status === 'Available' ? 'available' : s.Status === 'In Use' ? 'in-use' : 'depleted'}">${s.Status}</span>
@@ -681,7 +681,7 @@
                 </div>
                 <span style="font-size: 0.7rem; color: var(--color-text-secondary);">${pct}%</span>
               </td>
-              <td style="font-size: 0.8rem;">${b.added_by_name || '—'}</td>
+              <td style="font-size: 0.8rem;">${b.added_by_name || '-'}</td>
               <td style="font-size: 0.8rem;">${new Date(b.added_at).toLocaleDateString()}</td>
               <td>
                 ${b.status === 'active' ? `<button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
@@ -1272,13 +1272,13 @@
     async showHistory(id) {
       const logs = await api(`/strains/${id}/history`);
       const strain = await api(`/strains/${id}`);
-      showModal(`History — ${strain.strain_id}`, `
+      showModal(`History - ${strain.strain_id}`, `
         <p style="margin-bottom: 16px; color: var(--color-text-secondary);"><em>${strain.organism}</em></p>
         ${logs.length ? logs.map(l => `
           <div class="activity-item">
             <div class="activity-dot"></div>
             <div><div class="activity-text"><span class="badge badge-${l.action === 'checkout' ? 'in-use' : l.action === 'checkin' ? 'available' : l.action === 'depleted' ? 'depleted' : 'active'}">${l.action}</span> by ${l.user_name}</div>
-            <div class="activity-time">${new Date(l.timestamp).toLocaleString()}${l.notes ? ' — ' + l.notes : ''}</div></div>
+            <div class="activity-time">${new Date(l.timestamp).toLocaleString()}${l.notes ? ' - ' + l.notes : ''}</div></div>
           </div>
         `).join('') : '<p style="color: var(--color-text-secondary);">No history yet.</p>'}
       `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
@@ -1415,7 +1415,7 @@
       showModal('Submit Correction', `
         <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
           Use this to fix mistakes. <strong>Positive</strong> number = return items. <strong>Negative</strong> number = remove more (e.g. breakage).
-          <br>Entries cannot be edited or deleted — corrections create a new audit trail entry.
+          <br>Entries cannot be edited or deleted - corrections create a new audit trail entry.
         </p>
         <div class="dash-form-group">
           <label class="dash-form-label">Correction Quantity *</label>
@@ -1446,7 +1446,7 @@
     async showBoxLedger(boxId, boxLabel) {
       const logs = await api(`/consumables/${boxId}/ledger`);
       const actionBadge = (a) => a === 'withdraw' ? 'badge-in-use' : a === 'return' ? 'badge-available' : a === 'correction' ? 'badge-depleted' : 'badge-active';
-      showModal(`Ledger — ${boxLabel}`, `
+      showModal(`Ledger - ${boxLabel}`, `
         <div style="max-height: 400px; overflow-y: auto;">
         ${logs.length ? `<table class="dash-table" style="font-size: 0.85rem;">
           <thead><tr><th>Time</th><th>Action</th><th>Qty</th><th>After</th><th>By</th><th>Notes</th></tr></thead>
@@ -1456,7 +1456,7 @@
             <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
             <td><strong>${l.qty_after}</strong></td>
             <td style="font-size: 0.8rem;">${l.user_name}</td>
-            <td style="font-size: 0.8rem;">${l.notes || '—'}</td>
+            <td style="font-size: 0.8rem;">${l.notes || '-'}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
         </div>
@@ -1480,7 +1480,7 @@
             <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
             <td><strong>${l.qty_after}</strong></td>
             <td style="font-size: 0.75rem;">${l.user_name}</td>
-            <td style="font-size: 0.75rem;">${l.notes || '—'}</td>
+            <td style="font-size: 0.75rem;">${l.notes || '-'}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
         </div>

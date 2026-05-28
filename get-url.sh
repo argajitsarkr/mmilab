@@ -1,7 +1,7 @@
 #!/bin/bash
 # Get the permanent public URL of the MMI Lab site (Tailscale Funnel)
 echo "──────────────────────────────────────"
-echo "  MMI Lab — Permanent Public URL"
+echo "  MMI Lab - Permanent Public URL"
 echo "──────────────────────────────────────"
 URL=$(docker exec mmilab-tunnel tailscale funnel status 2>/dev/null | grep -oP 'https://[a-z0-9.-]+' | head -1)
 if [ -z "$URL" ]; then
@@ -20,6 +20,6 @@ else
   echo ""
   echo "  Login: ${URL}/login.html"
   echo ""
-  echo "  (This URL is permanent — it never changes!)"
+  echo "  (This URL is permanent - it never changes!)"
 fi
 echo "──────────────────────────────────────"

@@ -1,4 +1,4 @@
-# MMI Lab — Molecular Biology & Bioinformatics, Tripura University
+# MMI Lab - Molecular Biology & Bioinformatics, Tripura University
 User-agent: *
 Allow: /
 

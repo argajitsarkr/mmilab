@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// Item types are now dynamic — stored in consumable_types table
+// Item types are now dynamic - stored in consumable_types table
 function getItemTypes(db) {
   return db.prepare('SELECT name FROM consumable_types ORDER BY name ASC').all().map(r => r.name);
 }
@@ -29,7 +29,7 @@ function canManageBoxes(user, db) {
   return user.role === 'pi' || user.id === getArgajitId(db);
 }
 
-// ── GET /api/consumables — List all boxes with FIFO ordering ──
+// ── GET /api/consumables - List all boxes with FIFO ordering ──
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
   const { item_type } = req.query;
@@ -52,14 +52,14 @@ router.get('/', (req, res) => {
   res.json(boxes);
 });
 
-// ── GET /api/consumables/types — Item types list (from DB) ──
+// ── GET /api/consumables/types - Item types list (from DB) ──
 router.get('/types', (req, res) => {
   const db = req.app.locals.db;
   const types = db.prepare('SELECT * FROM consumable_types ORDER BY name ASC').all();
   res.json(types);
 });
 
-// ── POST /api/consumables/types — Add a new item type (Argajit + PI only) ──
+// ── POST /api/consumables/types - Add a new item type (Argajit + PI only) ──
 router.post('/types', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {
@@ -75,7 +75,7 @@ router.post('/types', (req, res) => {
   res.status(201).json({ message: `Item type "${name.trim()}" added.` });
 });
 
-// ── DELETE /api/consumables/types/:id — Remove an item type (Argajit + PI only) ──
+// ── DELETE /api/consumables/types/:id - Remove an item type (Argajit + PI only) ──
 router.delete('/types/:id', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {
@@ -87,14 +87,14 @@ router.delete('/types/:id', (req, res) => {
   // Check if any boxes use this type
   const boxCount = db.prepare('SELECT COUNT(*) as c FROM consumable_boxes WHERE item_type = ?').get(type.name).c;
   if (boxCount > 0) {
-    return res.status(400).json({ error: `Cannot delete — ${boxCount} box(es) use this type. Delete the boxes first.` });
+    return res.status(400).json({ error: `Cannot delete - ${boxCount} box(es) use this type. Delete the boxes first.` });
   }
 
   db.prepare('DELETE FROM consumable_types WHERE id = ?').run(req.params.id);
   res.json({ message: `Item type "${type.name}" deleted.` });
 });
 
-// ── GET /api/consumables/stats — Month-wise usage stats by user ──
+// ── GET /api/consumables/stats - Month-wise usage stats by user ──
 router.get('/stats', (req, res) => {
   const db = req.app.locals.db;
   const { months } = req.query;
@@ -134,7 +134,7 @@ router.get('/stats', (req, res) => {
   res.json({ monthly: stats, userTotals });
 });
 
-// ── GET /api/consumables/summary — Quick counts per item type ──
+// ── GET /api/consumables/summary - Quick counts per item type ──
 router.get('/summary', (req, res) => {
   const db = req.app.locals.db;
   const summary = db.prepare(`
@@ -147,7 +147,7 @@ router.get('/summary', (req, res) => {
   res.json(summary);
 });
 
-// ── GET /api/consumables/ledger/all — Full ledger across all boxes ──
+// ── GET /api/consumables/ledger/all - Full ledger across all boxes ──
 // NOTE: This route MUST come before /:id/ledger to avoid Express matching "ledger" as :id
 router.get('/ledger/all', (req, res) => {
   const db = req.app.locals.db;
@@ -174,7 +174,7 @@ router.get('/ledger/all', (req, res) => {
   res.json(logs);
 });
 
-// ── GET /api/consumables/:id/ledger — Full audit trail for a box ──
+// ── GET /api/consumables/:id/ledger - Full audit trail for a box ──
 router.get('/:id/ledger', (req, res) => {
   const db = req.app.locals.db;
   const logs = db.prepare(`
@@ -185,7 +185,7 @@ router.get('/:id/ledger', (req, res) => {
   res.json(logs);
 });
 
-// ── POST /api/consumables/boxes — Add a new box (Argajit + PI only) ──
+// ── POST /api/consumables/boxes - Add a new box (Argajit + PI only) ──
 router.post('/boxes', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {
@@ -204,7 +204,7 @@ router.post('/boxes', (req, res) => {
   const qty = parseInt(initial_qty);
   if (qty <= 0) return res.status(400).json({ error: 'Quantity must be greater than 0.' });
 
-  // New boxes start locked — manager activates them manually when needed
+  // New boxes start locked - manager activates them manually when needed
   const status = 'locked';
   const now = istNow();
 
@@ -221,7 +221,7 @@ router.post('/boxes', (req, res) => {
   res.status(201).json(box);
 });
 
-// ── POST /api/consumables/:id/withdraw — Scholar withdraws items ──
+// ── POST /api/consumables/:id/withdraw - Scholar withdraws items ──
 router.post('/:id/withdraw', (req, res) => {
   const db = req.app.locals.db;
   const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(req.params.id);
@@ -255,7 +255,7 @@ router.post('/:id/withdraw', (req, res) => {
   res.json({ message: `Withdrew ${qty} units. ${newQty} remaining.`, qty_after: newQty });
 });
 
-// ── POST /api/consumables/:id/toggle — Activate or Lock a box (Argajit + PI only) ──
+// ── POST /api/consumables/:id/toggle - Activate or Lock a box (Argajit + PI only) ──
 router.post('/:id/toggle', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {
@@ -270,7 +270,7 @@ router.post('/:id/toggle', (req, res) => {
   res.json({ message: `Box "${box.box_label}" is now ${newStatus}.`, status: newStatus });
 });
 
-// ── POST /api/consumables/:id/correction — Correction entry (append-only fix) ──
+// ── POST /api/consumables/:id/correction - Correction entry (append-only fix) ──
 router.post('/:id/correction', (req, res) => {
   const db = req.app.locals.db;
   const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(req.params.id);
@@ -296,7 +296,7 @@ router.post('/:id/correction', (req, res) => {
   res.json({ message: 'Correction recorded.', qty_after: newQty });
 });
 
-// ── POST /api/consumables/:id/mark-empty — Force mark box as empty (Argajit + PI) ──
+// ── POST /api/consumables/:id/mark-empty - Force mark box as empty (Argajit + PI) ──
 router.post('/:id/mark-empty', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {
@@ -319,7 +319,7 @@ router.post('/:id/mark-empty', (req, res) => {
   res.json({ message: 'Box marked as empty.' });
 });
 
-// ── DELETE /api/consumables/:id — Delete box and its ledger (Argajit + PI only) ──
+// ── DELETE /api/consumables/:id - Delete box and its ledger (Argajit + PI only) ──
 router.delete('/:id', (req, res) => {
   const db = req.app.locals.db;
   if (!canManageBoxes(req.user, db)) {

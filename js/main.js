@@ -1,4 +1,4 @@
-// MMI Lab — Main JS
+// MMI Lab - Main JS
 document.addEventListener('DOMContentLoaded', () => {
   // Mobile nav toggle
   const toggle = document.querySelector('.nav-toggle');

@@ -93,7 +93,7 @@ router.post('/force-change-password', authMiddleware, (req, res) => {
   res.json({ message: 'Password changed successfully' });
 });
 
-// ── POST /api/auth/reset-password (PI only — reset a user's password) ──
+// ── POST /api/auth/reset-password (PI only - reset a user's password) ──
 router.post('/reset-password', authMiddleware, piOnly, (req, res) => {
   const { userId, newPassword } = req.body;
   if (!userId || !newPassword) return res.status(400).json({ error: 'userId and newPassword required' });
