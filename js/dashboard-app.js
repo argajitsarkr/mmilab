@@ -125,12 +125,15 @@
     const el = document.getElementById('page-overview');
 
     const html = `
-      <div class="dash-header" style="margin-bottom: 32px;">
+      <div class="dash-header" style="margin-bottom: 24px;">
         <h1>Welcome, ${user.role === 'pi' ? 'Dr. Bhattacharjee' : user.name.split(' ').pop()}</h1>
-        <p>Bacteria Stock Registry - Standard Operating Procedure (SOP)</p>
+        <p>Lab stock at a glance, and how to keep it accurate</p>
       </div>
 
-      <div style="background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+      <!-- Stats render here first; the SOP guides follow underneath -->
+      <div id="ovStats"></div>
+
+      <div class="ov-card">
         <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">How to use the Stock Registry</h3>
 
         <p style="color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.6;">
@@ -154,7 +157,7 @@
 
         <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 5v14M5 12h14"/></svg>
               Step 1: Adding a New Stock
@@ -168,7 +171,7 @@
             </ol>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
               Step 2: Check-Out / Check-In
@@ -180,7 +183,7 @@
             </ol>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
               Depleting & Deleting
@@ -192,7 +195,7 @@
             </ul>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"/></svg>
               QR Codes & History
@@ -207,7 +210,7 @@
         </div>
       </div>
 
-      <div style="background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 32px;">
+      <div class="ov-card">
         <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">How to use the Consumables Tracker</h3>
 
         <p style="color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.6;">
@@ -229,7 +232,7 @@
 
         <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 5v14M5 12h14"/></svg>
               Withdrawing Items
@@ -243,7 +246,7 @@
             </ol>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
               Corrections (No Edit / No Delete)
@@ -256,7 +259,7 @@
             </ul>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               Viewing Usage History
@@ -268,7 +271,7 @@
             </ul>
           </div>
 
-          <div style="padding: 20px; background: var(--color-warm-surface); border: 1px solid var(--color-warm-border); border-radius: 4px;">
+          <div class="ov-subcard">
             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2" style="width:18px;height:18px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               Rules & Anti-Tampering
@@ -290,117 +293,203 @@
     loadOverviewStats(el);
   }
 
+  // Stats block at the top of the overview: KPI tiles, a usage chart, an item-type
+  // breakdown and a per-scholar table. Everything degrades to a placeholder if the
+  // API is unreachable - the SOP guides below must still render.
+  const OV_COLORS = ['#D15A2B','#2BA850','#2563eb','#9333ea','#D19D2B','#0891b2','#be185d','#DC2626'];
+
+  // The API buckets months with SQLite strftime over IST timestamps, so the key must be
+  // built from local date parts. toISOString() is UTC and shifts the month backwards
+  // for the first 5.5 hours of every month in IST.
+  function monthKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
   async function loadOverviewStats(el) {
+    const host = el.querySelector('#ovStats');
+    if (!host) return;
+
+    let strains = [], summary = [], stats = { monthly: [], userTotals: [] };
     try {
-      const data = await api('/consumables/stats?months=3');
-      if (!data || !data.monthly || (!data.monthly.length && !data.userTotals.length)) return;
-
-      const statsDiv = document.createElement('div');
-      statsDiv.style.cssText = 'background: white; border: var(--border-light); padding: 32px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 32px;';
-
-      // Build month labels for last 3 months
-      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const now = new Date();
-      const last3 = [];
-      for (let i = 2; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        last3.push({ key: d.toISOString().slice(0, 7), label: monthNames[d.getMonth()] + ' ' + d.getFullYear() });
-      }
-
-      // Get unique users and item types from data
-      const users = [...new Set(data.monthly.map(r => r.user_name))].sort();
-      const itemTypes = [...new Set(data.monthly.map(r => r.item_type))].sort();
-      const colors = ['#D15A2B','#2563eb','#16a34a','#9333ea','#dc2626','#ca8a04','#0891b2','#be185d'];
-
-      // Build lookup: { "user|type|month": qty }
-      const lookup = {};
-      data.monthly.forEach(r => { lookup[r.user_name + '|' + r.item_type + '|' + r.month] = r.total_qty; });
-
-      // Find max value for bar scaling
-      let maxVal = 0;
-      users.forEach(u => last3.forEach(m => {
-        let total = 0;
-        itemTypes.forEach(t => { total += (lookup[u + '|' + t + '|' + m.key] || 0); });
-        if (total > maxVal) maxVal = total;
-      }));
-      if (maxVal === 0) maxVal = 1;
-
-      // Monthly chart - stacked horizontal bars per user per month
-      let chartHtml = `
-        <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; color: var(--brand-orange); border-bottom: 2px solid var(--color-warm-border); padding-bottom: 12px;">Consumables Usage - Last 3 Months</h3>
-        <p style="color: var(--color-text-secondary); margin-bottom: 24px; font-size: 0.85rem;">Month-wise withdrawal totals per scholar, broken down by item type.</p>
-      `;
-
-      // Legend
-      chartHtml += `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
-        ${itemTypes.map((t, i) => `<span style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--color-text-secondary);">
-          <span style="width: 12px; height: 12px; background: ${colors[i % colors.length]}; border-radius: 2px; display: inline-block;"></span>${t}
-        </span>`).join('')}
-      </div>`;
-
-      // Chart per month
-      last3.forEach(m => {
-        chartHtml += `<div style="margin-bottom: 24px;">
-          <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">${m.label}</h4>`;
-
-        const monthUsers = users.filter(u => {
-          let total = 0;
-          itemTypes.forEach(t => { total += (lookup[u + '|' + t + '|' + m.key] || 0); });
-          return total > 0;
-        });
-
-        if (!monthUsers.length) {
-          chartHtml += `<p style="font-size: 0.8rem; color: var(--color-text-secondary); padding: 8px 0;">No withdrawals this month.</p>`;
-        } else {
-          monthUsers.forEach(u => {
-            const segments = [];
-            let userTotal = 0;
-            itemTypes.forEach((t, i) => {
-              const val = lookup[u + '|' + t + '|' + m.key] || 0;
-              if (val > 0) {
-                segments.push({ type: t, val, color: colors[i % colors.length] });
-                userTotal += val;
-              }
-            });
-            const barWidth = Math.max((userTotal / maxVal) * 100, 8);
-            const shortName = u.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, '').split(' ').pop();
-
-            chartHtml += `<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-              <span style="width: 80px; font-size: 0.8rem; font-weight: 500; text-align: right; flex-shrink: 0;">${shortName}</span>
-              <div style="flex: 1; display: flex; height: 24px; border-radius: 4px; overflow: hidden; background: #f3f4f6;" title="${u}: ${userTotal} total">
-                ${segments.map(s => `<div style="width: ${(s.val / maxVal) * 100}%; background: ${s.color}; display: flex; align-items: center; justify-content: center;" title="${s.type}: ${s.val}">
-                  ${s.val >= 3 ? `<span style="font-size: 0.65rem; color: white; font-weight: 600;">${s.val}</span>` : ''}
-                </div>`).join('')}
-              </div>
-              <span style="font-size: 0.75rem; font-weight: 600; color: var(--brand-orange); width: 36px;">${userTotal}</span>
-            </div>`;
-          });
-        }
-        chartHtml += `</div>`;
-      });
-
-      // All-time leaderboard table
-      if (data.userTotals.length) {
-        chartHtml += `
-          <h4 style="font-size: 0.95rem; font-family: var(--font-display); margin-top: 32px; margin-bottom: 12px; padding-top: 16px; border-top: 2px solid var(--color-warm-border);">All-Time Usage by Scholar</h4>
-          <div class="dash-table-wrap"><table class="dash-table" style="font-size: 0.85rem;">
-            <thead><tr><th>Scholar</th><th>Item Type</th><th>Total Withdrawn</th><th>Withdrawals</th></tr></thead>
-            <tbody>${data.userTotals.map(r => `<tr>
-              <td>${r.user_name.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, '')}</td>
-              <td>${r.item_type}</td>
-              <td><strong>${r.total_qty}</strong></td>
-              <td>${r.withdrawal_count} times</td>
-            </tr>`).join('')}</tbody>
-          </table></div>
-        `;
-      }
-
-      statsDiv.innerHTML = chartHtml;
-      el.appendChild(statsDiv);
-    } catch(e) {
-      // Stats are optional - don't break the page if API fails
-      console.log('Stats load failed:', e);
+      [strains, summary, stats] = await Promise.all([
+        api('/strains'),
+        api('/consumables/summary'),
+        api('/consumables/stats?months=3')
+      ]);
+    } catch (e) {
+      console.log('Overview stats failed to load:', e);
+      return;
     }
+    if (!Array.isArray(strains)) strains = [];
+    if (!Array.isArray(summary)) summary = [];
+    if (!stats || !Array.isArray(stats.monthly)) stats = { monthly: [], userTotals: [] };
+
+    host.innerHTML = renderOvTop(strains, summary, stats) + renderOvSplit(summary, stats);
+  }
+
+  // -- Hero usage card + KPI tiles --------------------------------------------
+  function renderOvTop(strains, summary, stats) {
+    const thisMonth = monthKey(new Date());
+    const monthTotal = stats.monthly
+      .filter(r => r.month === thisMonth)
+      .reduce((sum, r) => sum + r.total_qty, 0);
+    const myMonthTotal = stats.monthly
+      .filter(r => r.month === thisMonth && r.user_name === user.name)
+      .reduce((sum, r) => sum + r.total_qty, 0);
+
+    const available = strains.filter(s => s.Status === 'Available').length;
+    const inUse = strains.filter(s => s.Status === 'In Use').length;
+    const consumableUnitTotal = summary.reduce((sum, s) => sum + s.total_qty, 0);
+    const lowTypes = summary.filter(s => s.total_qty > 0 && s.total_qty <= CONS_LOW_STOCK).length;
+    const outTypes = summary.filter(s => s.total_qty === 0).length;
+    const noActive = summary.filter(s => s.total_qty > 0 && s.active_boxes === 0).length;
+
+    let stockNote = 'All item types stocked';
+    let stockClass = 'good';
+    if (outTypes) { stockNote = `${outTypes} item type${outTypes !== 1 ? 's' : ''} out of stock`; stockClass = 'warn'; }
+    else if (lowTypes) { stockNote = `${lowTypes} running low`; stockClass = 'warn'; }
+    else if (noActive) { stockNote = `${noActive} with no active box`; stockClass = 'warn'; }
+
+    return `
+      <div class="ov-top">
+        <div class="ov-card">
+          <div class="ov-hero-head">
+            <div>
+              <div class="ov-hero-value">${monthTotal}</div>
+              <div class="ov-section-sub" style="margin: 4px 0 0;">Consumable units withdrawn this month</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="ov-label">Your share</div>
+              <div style="font-size: 1.2rem; font-weight: 700; color: var(--brand-orange);">${myMonthTotal}</div>
+            </div>
+          </div>
+          ${renderOvChart(stats)}
+        </div>
+
+        <div class="ov-kpis">
+          <div class="ov-kpi">
+            <div class="ov-label">Vials in freezer</div>
+            <div class="ov-kpi-value">${strains.length}</div>
+            <div class="ov-kpi-note">${available} available &middot; ${inUse} in use</div>
+          </div>
+          <div class="ov-kpi">
+            <div class="ov-label">Consumables in stock</div>
+            <div class="ov-kpi-value">${consumableUnitTotal}<span>units</span></div>
+            <div class="ov-kpi-note ${stockClass}">${stockNote}</div>
+          </div>
+          <div class="ov-kpi">
+            <div class="ov-label">Item types tracked</div>
+            <div class="ov-kpi-value">${summary.length}</div>
+            <div class="ov-kpi-note">${summary.reduce((n, s) => n + s.active_boxes, 0)} active boxes</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // -- Stacked bars: per scholar, per month, coloured by item type -------------
+  function renderOvChart(stats) {
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    const months = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: monthKey(d), label: monthNames[d.getMonth()] + ' ' + d.getFullYear() });
+    }
+
+    if (!stats.monthly.length) {
+      return '<div class="ov-empty">No withdrawals recorded yet. Usage will chart here once scholars start logging.</div>';
+    }
+
+    const users = [...new Set(stats.monthly.map(r => r.user_name))].sort();
+    const itemTypes = [...new Set(stats.monthly.map(r => r.item_type))].sort();
+    const lookup = {};
+    stats.monthly.forEach(r => { lookup[r.user_name + '|' + r.item_type + '|' + r.month] = r.total_qty; });
+    const userMonthTotal = (u, mKey) => itemTypes.reduce((sum, t) => sum + (lookup[u + '|' + t + '|' + mKey] || 0), 0);
+
+    let maxVal = 0;
+    users.forEach(u => months.forEach(m => { maxVal = Math.max(maxVal, userMonthTotal(u, m.key)); }));
+    if (maxVal === 0) maxVal = 1;
+
+    let html = `<div class="ov-legend">
+      ${itemTypes.map((t, i) => `<span><i style="background: ${OV_COLORS[i % OV_COLORS.length]};"></i>${escHtml(t)}</span>`).join('')}
+    </div>`;
+
+    months.forEach(m => {
+      const monthUsers = users.filter(u => userMonthTotal(u, m.key) > 0);
+      html += `<div class="ov-month-label">${m.label}</div>`;
+      if (!monthUsers.length) {
+        html += '<div class="ov-empty" style="padding: 4px 0;">No withdrawals this month.</div>';
+        return;
+      }
+      monthUsers.forEach(u => {
+        const total = userMonthTotal(u, m.key);
+        const shortName = u.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, '').split(' ').pop();
+        const segments = itemTypes
+          .map((t, i) => ({ type: t, val: lookup[u + '|' + t + '|' + m.key] || 0, color: OV_COLORS[i % OV_COLORS.length] }))
+          .filter(s => s.val > 0);
+        html += `<div class="ov-bar-row">
+          <span class="ov-bar-name">${escHtml(shortName)}</span>
+          <div class="ov-bar-track" title="${escHtml(u)}: ${total} units">
+            ${segments.map(s => `<div style="width: ${(s.val / maxVal) * 100}%; background: ${s.color}; display: flex; align-items: center; justify-content: center;" title="${escHtml(s.type)}: ${s.val}">
+              ${s.val >= 3 ? `<span style="font-size: 0.65rem; color: white; font-weight: 600;">${s.val}</span>` : ''}
+            </div>`).join('')}
+          </div>
+          <span class="ov-bar-total">${total}</span>
+        </div>`;
+      });
+    });
+    return html;
+  }
+
+  // -- Stock share by item type + all-time usage table -------------------------
+  function renderOvSplit(summary, stats) {
+    const totalUnits = summary.reduce((sum, s) => sum + s.total_qty, 0);
+    const ranked = [...summary].sort((a, b) => b.total_qty - a.total_qty);
+
+    const breakdown = totalUnits > 0
+      ? ranked.map((s, i) => {
+          const pct = Math.round((s.total_qty / totalUnits) * 100);
+          return `<div class="ov-breakdown-row">
+            <span class="dot" style="background: ${OV_COLORS[i % OV_COLORS.length]};"></span>
+            <span class="name" title="${escHtml(s.item_type)}">${escHtml(s.item_type)}</span>
+            <span class="pct">${pct}%</span>
+          </div>`;
+        }).join('')
+      : '<div class="ov-empty">No consumable boxes yet.</div>';
+
+    const bar = totalUnits > 0
+      ? `<div class="ov-bar-track" style="height: 10px; margin-bottom: 16px;">
+          ${ranked.map((s, i) => `<div style="width: ${(s.total_qty / totalUnits) * 100}%; background: ${OV_COLORS[i % OV_COLORS.length]};" title="${escHtml(s.item_type)}: ${s.total_qty}"></div>`).join('')}
+        </div>`
+      : '';
+
+    const totals = stats.userTotals || [];
+    const table = totals.length
+      ? `<div class="dash-table-wrap" style="border-radius: 10px;"><table class="dash-table" style="font-size: 0.82rem;">
+          <thead><tr><th>Scholar</th><th>Item Type</th><th>Total Withdrawn</th><th>Withdrawals</th></tr></thead>
+          <tbody>${totals.map(r => `<tr>
+            <td>${escHtml(r.user_name.replace(/^(Mr\.|Ms\.|Dr\.)\s*/, ''))}</td>
+            <td>${escHtml(r.item_type)}</td>
+            <td><strong>${r.total_qty}</strong></td>
+            <td>${r.withdrawal_count} times</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`
+      : '<div class="ov-empty">No withdrawals logged yet.</div>';
+
+    return `
+      <div class="ov-split">
+        <div class="ov-card">
+          <div class="ov-section-title" style="font-size: 1.1rem;">Stock share</div>
+          <div class="ov-section-sub">${totalUnits} units across ${summary.length} item type${summary.length !== 1 ? 's' : ''}</div>
+          ${bar}
+          ${breakdown}
+        </div>
+        <div class="ov-card">
+          <div class="ov-section-title" style="font-size: 1.1rem;">All-time usage by scholar</div>
+          <div class="ov-section-sub">Withdrawals only - untracked usage found at recount is not attributed to anyone</div>
+          <div style="max-height: 320px; overflow-y: auto;">${table}</div>
+        </div>
+      </div>`;
   }
 
   // ══════════════════════════════════════
@@ -516,13 +605,23 @@
     </div>`;
     overlay.classList.remove('minimized');
     overlay.classList.add('active');
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-    overlay.querySelector('.dash-modal-close-btn').addEventListener('click', closeModal);
+    // Assigned, not added: the overlay element persists between modals, so
+    // addEventListener here would stack a new handler on every open.
+    overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+    overlay.querySelector('.dash-modal-close-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
     if (minimizable) {
-      overlay.querySelector('.dash-modal-minimize-btn').addEventListener('click', () => minimizeModal());
-      // Click on minimized header to restore
+      overlay.querySelector('.dash-modal-minimize-btn').addEventListener('click', (e) => {
+        // Without this the click bubbles to the header handler below, which sees
+        // the freshly added 'minimized' class and restores it again immediately.
+        e.stopPropagation();
+        if (overlay.classList.contains('minimized')) restoreModal(); else minimizeModal();
+      });
+      // Click the collapsed title bar to restore
       overlay.querySelector('.dash-modal-header').addEventListener('click', (e) => {
-        if (overlay.classList.contains('minimized') && !e.target.closest('.dash-modal-close-btn')) {
+        if (overlay.classList.contains('minimized') && !e.target.closest('.dash-modal-header-btns')) {
           restoreModal();
         }
       });
@@ -766,7 +865,6 @@
     const menuItems = [];
     if (isActive) menuItems.push(`<button onclick="window.dashApp.showCorrectionModal(${b.id})">Correction entry</button>`);
     menuItems.push(`<button onclick="window.dashApp.showRecountModal(${b.id})">Recount stock</button>`);
-    menuItems.push(`<button onclick="window.dashApp.showBoxLedger(${b.id}, ${label})">View ledger</button>`);
     if (isBoxManager) {
       menuItems.push('<hr>' +
         `<button onclick="window.dashApp.showRenameBoxModal(${b.id}, ${label})">Rename box</button>` +
@@ -788,6 +886,7 @@
         <span class="badge ${isActive ? 'badge-available' : 'badge-in-use'}">${isActive ? 'Active' : 'Locked'}</span>
         <div class="cons-actions">
           ${isActive ? `<button class="dash-btn cons-btn-sm" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
+          <button class="dash-btn-outline cons-btn-sm" onclick="window.dashApp.showBoxLedger(${b.id}, ${label})">Ledger</button>
           <details class="cons-menu">
             <summary title="More actions">&#8942;</summary>
             <div class="cons-menu-list">${menuItems.join('')}</div>
