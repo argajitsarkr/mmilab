@@ -687,6 +687,7 @@
   // ══════════════════════════════════════
   let consumableTypes = [];       // names, used by the "Add Box" modal
   let consumableUnits = {};       // name -> unit
+  let consBoxCache = [];          // last fetched boxes, so modals need no extra round trip
   let consSearchTerm = '';
   const isBoxManager = user.role === 'pi' || user.email === 'argajit05@gmail.com';
 
@@ -765,6 +766,7 @@
       api('/consumables/summary')
     ]);
 
+    consBoxCache = boxes;
     let visibleBoxes = boxes;
     let visibleSummary = summary;
     if (consSearchTerm) {
@@ -949,9 +951,9 @@
         <p>Organize, search, and manage all lab documents by category, project, or folder</p>
       </div>
 
-      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      <div class="docs-layout" style="display: flex; gap: 20px; flex-wrap: wrap;">
         <!-- Left sidebar: Folder navigation -->
-        <div id="docSidebar" style="min-width: 220px; max-width: 260px; flex-shrink: 0;">
+        <div id="docSidebar" class="docs-rail">
           <div style="border: var(--border-light); background: white;">
             <div style="padding: 14px 16px; border-bottom: var(--border-light); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary);">Browse</div>
 
@@ -993,11 +995,11 @@
         <!-- Right content: Search + documents -->
         <div style="flex: 1; min-width: 0;">
           <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-            <input class="dash-search" id="docSearch" type="text" placeholder="Search inside documents (full-text search)..." style="flex: 1; min-width: 200px;">
+            <input class="dash-search" id="docSearch" type="text" placeholder="Search inside documents (full-text search)...">
             <button class="dash-btn" id="uploadDocBtn">+ Upload Document</button>
           </div>
           <div id="docCurrentFilter" style="margin-bottom: 12px; font-size: 0.85rem; color: var(--color-text-secondary);"></div>
-          <div id="docsContainer" class="dash-cards" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+          <div id="docsContainer" class="dash-cards docs-grid"></div>
         </div>
       </div>
     `;
@@ -1554,7 +1556,7 @@
         </div>
         <div class="dash-form-group">
           <label class="dash-form-label">Initial Quantity *</label>
-          <input class="dash-input" id="newBoxQty" type="number" min="1" placeholder="e.g. 200">
+          <input class="dash-input" id="newBoxQty" type="number" inputmode="numeric" min="1" placeholder="e.g. 200">
         </div>
         <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 8px;">
           New boxes start <strong>locked</strong>. Use the <strong>Activate</strong> button to make them available for withdrawal.
@@ -1578,21 +1580,48 @@
       refreshConsumables();
     },
 
+    // The screen scholars use most, usually on a phone at the bench:
+    // one-tap amounts first, keyboard only for unusual quantities.
     showWithdrawModal(boxId) {
-      showModal('Withdraw from Box', `
+      const box = consBoxCache.find(b => b.id === boxId);
+      const unit = box ? (consumableUnits[box.item_type] || 'pcs') : 'pcs';
+      const title = box ? `Withdraw - ${escHtml(box.item_type)}` : 'Withdraw from Box';
+
+      showModal(title, `
+        ${box ? `<p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+          ${escHtml(box.box_label)} &middot; <strong>${box.current_qty} ${escHtml(unit)}</strong> left
+        </p>` : ''}
         <div class="dash-form-group">
           <label class="dash-form-label">Quantity to withdraw *</label>
-          <input class="dash-input" id="withdrawQty" type="number" min="1" placeholder="e.g. 5">
+          <div class="qty-presets">
+            ${[1, 2, 5, 10, 20].map(n => `<button type="button" class="qty-preset" data-qty="${n}">${n}</button>`).join('')}
+          </div>
+          <input class="dash-input" id="withdrawQty" type="number" inputmode="numeric" min="1"
+                 ${box ? `max="${box.current_qty}"` : ''} placeholder="Or type an amount">
         </div>
         <div class="dash-form-group">
           <label class="dash-form-label">Purpose / Notes</label>
           <input class="dash-input" id="withdrawNotes" placeholder="e.g. Plating V. cholerae isolates">
         </div>
-        <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 8px;">
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary);">
           Timestamp is set automatically by the server. You cannot backdate entries.
         </p>
       `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
          <button class="dash-btn" onclick="window.dashApp.withdraw(${boxId})">Confirm Withdrawal</button>`);
+
+      const qtyInput = document.getElementById('withdrawQty');
+      const presets = [...document.querySelectorAll('.qty-preset')];
+      const syncPresets = () => {
+        presets.forEach(p => p.classList.toggle('selected', p.dataset.qty === qtyInput.value));
+      };
+      presets.forEach(p => p.addEventListener('click', () => {
+        qtyInput.value = p.dataset.qty;
+        syncPresets();
+      }));
+      qtyInput.addEventListener('input', syncPresets);
+      qtyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.dashApp.withdraw(boxId);
+      });
     },
 
     async withdraw(boxId) {
@@ -1611,8 +1640,11 @@
     // Physical stock count. Whatever is missing against the recorded quantity is
     // logged as untracked usage - items that left without a withdrawal entry.
     async showRecountModal(boxId) {
-      const boxes = await api('/consumables?item_type=all');
-      const box = boxes.find(b => b.id === boxId);
+      let box = consBoxCache.find(b => b.id === boxId);
+      if (!box) {
+        const boxes = await api('/consumables?item_type=all');
+        box = Array.isArray(boxes) ? boxes.find(b => b.id === boxId) : null;
+      }
       if (!box) return alert('Box not found.');
       const unit = consumableUnits[box.item_type] || 'pcs';
 
@@ -1633,7 +1665,7 @@
         </div>
         <div class="dash-form-group">
           <label class="dash-form-label">Actual Count *</label>
-          <input class="dash-input" id="recountQty" type="number" min="0" max="${box.initial_qty}" placeholder="How many are actually in the box?">
+          <input class="dash-input" id="recountQty" type="number" inputmode="numeric" min="0" max="${box.initial_qty}" placeholder="How many are actually in the box?">
         </div>
         <div id="recountGap" style="font-size: 0.85rem; margin-bottom: 20px; min-height: 20px;"></div>
         <div class="dash-form-group">
@@ -1688,7 +1720,7 @@
         </p>
         <div class="dash-form-group">
           <label class="dash-form-label">Correction Quantity *</label>
-          <input class="dash-input" id="corrQty" type="number" placeholder="e.g. -3 (broke 3) or +5 (return 5)">
+          <input class="dash-input" id="corrQty" type="number" inputmode="numeric" placeholder="e.g. -3 (broke 3) or +5 (return 5)">
         </div>
         <div class="dash-form-group">
           <label class="dash-form-label">Reason (required) *</label>

@@ -298,26 +298,11 @@ body.role-scholar .pi-only { display: none; }
     background: white; border-radius: 6px; color: var(--color-text-secondary);
 }
 
-@media (max-width: 767px) {
-    .cons-stats { grid-template-columns: repeat(2, 1fr); }
-    .cons-box { grid-template-columns: 1fr auto; gap: 10px; }
-    .cons-box > .cons-bar-wrap { grid-column: 1 / -1; }
-    .cons-actions { grid-column: 1 / -1; justify-self: start; }
-}
 
 
 /* Keep the status badge from stretching inside the box row grid */
 .cons-box > .badge { justify-self: start; align-self: center; }
 
-@media (max-width: 767px) {
-    .cons-box { grid-template-columns: 1fr auto; row-gap: 10px; }
-    .cons-box > :first-child { grid-column: 1; grid-row: 1; }
-    .cons-box > .badge { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
-    .cons-box > .cons-bar-wrap { grid-column: 1 / -1; grid-row: 2; }
-    .cons-box > .cons-actions { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
-    .cons-group-head { flex-direction: column; gap: 4px; align-items: flex-start; }
-    .cons-group-meta { white-space: normal; }
-}
 
 /* Used-up boxes live in the archive - the card only carries the count */
 .cons-archive-line {
@@ -390,4 +375,110 @@ body.role-scholar .pi-only { display: none; }
 @media (max-width: 1100px) {
     .ov-top, .ov-split { grid-template-columns: 1fr; }
     .ov-kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE
+   Phones are the primary place scholars log withdrawals, so the
+   consumables page and its modals are tuned for one-thumb use.
+   ══════════════════════════════════════════════════════════════ */
+
+/* iOS zooms the page when a focused input is under 16px - never go below it */
+.dash-input, .dash-search, .dash-select { font-size: 16px; }
+
+@media (max-width: 767px) {
+
+    /* ── Layout ── */
+    .dash-main { padding: 76px 12px 32px; }
+    .dash-header { margin-bottom: 20px; }
+    .dash-header h1 { font-size: 1.5rem; }
+    .dash-header p { font-size: 0.85rem; }
+
+    /* ── Toolbar: full-width controls, primary action first ── */
+    .dash-toolbar { gap: 8px; }
+    .dash-toolbar > * { width: 100%; }
+    .dash-search, .dash-select { min-height: 46px; }
+    .dash-toolbar .dash-btn { order: -1; min-height: 48px; }
+
+    /* ── Consumables: stat tiles ── */
+    .cons-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+    .cons-stat { padding: 12px; }
+    .cons-stat-value { font-size: 1.35rem; }
+    .cons-stat-name { font-size: 0.65rem; }
+
+    /* ── Consumables: one box per stacked block, Withdraw as a full-width target ── */
+    .cons-group-head { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; }
+    .cons-group-meta { white-space: normal; font-size: 0.72rem; }
+    .cons-box {
+        grid-template-columns: 1fr auto; row-gap: 10px; column-gap: 10px; padding: 14px;
+    }
+    .cons-box > :first-child { grid-column: 1; grid-row: 1; }
+    .cons-box > .badge { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+    .cons-box > .cons-bar-wrap { grid-column: 1 / -1; grid-row: 2; }
+    .cons-box > .cons-actions { grid-column: 1 / -1; grid-row: 3; width: 100%; gap: 8px; }
+    .cons-actions .dash-btn { flex: 1; min-height: 46px; font-size: 0.75rem; }
+    .cons-actions .dash-btn-outline { min-height: 46px; padding: 6px 16px; }
+    .cons-menu > summary { width: 46px; height: 46px; flex-shrink: 0; }
+    .cons-menu-list { min-width: 200px; }
+    .cons-menu-list button { padding: 12px; font-size: 0.85rem; }
+    .cons-archive-line { padding: 12px 14px; }
+
+    /* ── Modals become bottom sheets: closer to the thumb, easier to dismiss ── */
+    .dash-modal-overlay { padding: 0; align-items: flex-end; }
+    .dash-modal {
+        max-width: 100%; max-height: 92vh; padding: 20px 16px 24px;
+        border-radius: 16px 16px 0 0; border: none;
+    }
+    .dash-modal-header h2 { font-size: 1.15rem; }
+    .dash-modal-header-btns button { width: 40px; height: 40px; }
+    .dash-modal-actions { flex-direction: column; gap: 8px; position: sticky; bottom: 0; background: white; padding-top: 12px; }
+    .dash-modal-actions .dash-btn, .dash-modal-actions .dash-btn-outline { width: 100%; min-height: 48px; }
+    .dash-modal-overlay.minimized { right: 12px; left: 12px; }
+    .dash-modal-overlay.minimized .dash-modal { max-width: none; border-radius: 10px 10px 0 0; }
+
+    /* ── Forms ── */
+    .dash-form-group { margin-bottom: 16px; }
+    .dash-input { min-height: 48px; }
+
+    /* ── Tables: tighter, and always horizontally scrollable ── */
+    .dash-table th, .dash-table td { padding: 10px 12px; }
+    .dash-table { font-size: 0.8rem; }
+    .dash-table-wrap { -webkit-overflow-scrolling: touch; }
+
+    /* ── Overview ── */
+    .ov-card { padding: 18px 14px; border-radius: 12px; }
+    .ov-top, .ov-split { gap: 12px; margin-bottom: 12px; }
+    .ov-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .ov-hero-value { font-size: 2rem; }
+    .ov-bar-name { width: 62px; font-size: 0.72rem; }
+    .ov-subcard { padding: 16px 14px; }
+}
+
+/* ── Quantity presets: one-tap amounts in the withdraw sheet ── */
+.qty-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.qty-preset {
+    flex: 1; min-width: 56px; min-height: 44px; padding: 10px 12px;
+    border: var(--border-light); background: white; border-radius: 8px; cursor: pointer;
+    font-family: var(--font-body); font-size: 0.95rem; font-weight: 600;
+    color: var(--color-text); transition: var(--transition);
+}
+.qty-preset:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+.qty-preset.selected { background: var(--brand-orange); border-color: var(--brand-orange); color: white; }
+
+/* Flex and grid items default to min-width:auto, so a wide child (the ledger
+   tables) pushes the whole page wider than the phone viewport instead of
+   scrolling inside its own wrapper. */
+.dash-main { min-width: 0; }
+.ov-top > *, .ov-split > *, .ov-kpis > * { min-width: 0; }
+.ov-card, .ov-subcard { overflow-wrap: anywhere; }
+
+
+/* Documents page: the folder rail and the 280px card grid both need to give way on a phone */
+.docs-rail { min-width: 220px; max-width: 260px; flex-shrink: 0; }
+.docs-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+#docSearch { flex: 1; min-width: 200px; }
+@media (max-width: 767px) {
+    .docs-rail { min-width: 0; max-width: none; width: 100%; }
+    .docs-grid { grid-template-columns: 1fr; }
+    #docSearch { min-width: 0; }
 }
