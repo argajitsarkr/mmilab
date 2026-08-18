@@ -255,6 +255,78 @@ router.post('/:id/withdraw', (req, res) => {
   res.json({ message: `Withdrew ${qty} units. ${newQty} remaining.`, qty_after: newQty });
 });
 
+// ── POST /api/consumables/:id/recount - Set the true remaining count after a physical count ──
+// The gap between the recorded and counted quantity is logged as untracked usage:
+// items that left the box without anyone recording a withdrawal.
+router.post('/:id/recount', (req, res) => {
+  const db = req.app.locals.db;
+  const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(req.params.id);
+  if (!box) return res.status(404).json({ error: 'Box not found.' });
+  if (box.status === 'empty') return res.status(400).json({ error: 'This box is already used up.' });
+
+  const counted = parseInt(req.body.counted_qty);
+  if (Number.isNaN(counted)) return res.status(400).json({ error: 'Enter the number of items you counted.' });
+  if (counted < 0) return res.status(400).json({ error: 'Counted quantity cannot be negative.' });
+  if (counted > box.initial_qty) {
+    return res.status(400).json({ error: `Counted quantity cannot exceed the box size of ${box.initial_qty}.` });
+  }
+
+  const userNote = (req.body.notes || '').trim();
+  const gap = box.current_qty - counted;   // positive = items used without being logged
+  const now = istNow();
+
+  let summary;
+  if (gap > 0) summary = `Physical count: ${counted} found, ${box.current_qty} expected. ${gap} used but not tracked.`;
+  else if (gap < 0) summary = `Physical count: ${counted} found, ${box.current_qty} expected. ${-gap} more than recorded.`;
+  else summary = `Physical count: ${counted} found, matches the recorded quantity.`;
+
+  const recount = db.transaction(() => {
+    db.prepare('UPDATE consumable_boxes SET current_qty = ? WHERE id = ?').run(counted, box.id);
+    db.prepare(
+      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'recount', ?, ?, ?, ?)`
+    ).run(box.id, req.user.id, Math.abs(gap), counted, userNote ? `${summary} - ${userNote}` : summary, now);
+
+    // A recount to zero retires the box, same as withdrawing the last item
+    if (counted === 0) {
+      db.prepare("UPDATE consumable_boxes SET status = 'empty', emptied_at = ? WHERE id = ?").run(now, box.id);
+      db.prepare(
+        `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'box_emptied', 0, 0, 'Empty at physical count', ?)`
+      ).run(box.id, req.user.id, now);
+    }
+  });
+  recount();
+
+  res.json({ message: summary, qty_after: counted, untracked: gap > 0 ? gap : 0 });
+});
+
+// ── PATCH /api/consumables/:id/label - Rename a box (Argajit + PI only) ──
+router.patch('/:id/label', (req, res) => {
+  const db = req.app.locals.db;
+  if (!canManageBoxes(req.user, db)) {
+    return res.status(403).json({ error: 'Only Argajit Sarkar or the PI can rename boxes.' });
+  }
+
+  const box = db.prepare('SELECT * FROM consumable_boxes WHERE id = ?').get(req.params.id);
+  if (!box) return res.status(404).json({ error: 'Box not found.' });
+
+  const newLabel = (req.body.box_label || '').trim();
+  if (!newLabel) return res.status(400).json({ error: 'Box label cannot be empty.' });
+  if (newLabel.length > 100) return res.status(400).json({ error: 'Box label must be 100 characters or less.' });
+  if (newLabel === box.box_label) return res.json({ message: 'Label unchanged.', box_label: newLabel });
+
+  // Record the rename in the ledger so old entries can still be traced to this box
+  const now = istNow();
+  const rename = db.transaction(() => {
+    db.prepare('UPDATE consumable_boxes SET box_label = ? WHERE id = ?').run(newLabel, box.id);
+    db.prepare(
+      `INSERT INTO consumable_ledger (box_id, user_id, action, qty, qty_after, notes, timestamp) VALUES (?, ?, 'rename', 0, ?, ?, ?)`
+    ).run(box.id, req.user.id, box.current_qty, `Renamed from "${box.box_label}" to "${newLabel}"`, now);
+  });
+  rename();
+
+  res.json({ message: `Box renamed to "${newLabel}".`, box_label: newLabel });
+});
+
 // ── POST /api/consumables/:id/toggle - Activate or Lock a box (Argajit + PI only) ──
 router.post('/:id/toggle', (req, res) => {
   const db = req.app.locals.db;

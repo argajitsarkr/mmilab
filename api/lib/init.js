@@ -121,7 +121,7 @@ function initDB() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       box_id INTEGER NOT NULL REFERENCES consumable_boxes(id),
       user_id INTEGER NOT NULL REFERENCES users(id),
-      action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied')),
+      action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied','recount','rename')),
       qty INTEGER NOT NULL,
       qty_after INTEGER NOT NULL,
       notes TEXT DEFAULT '',
@@ -161,7 +161,7 @@ function initDB() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         box_id INTEGER NOT NULL REFERENCES consumable_boxes(id),
         user_id INTEGER NOT NULL REFERENCES users(id),
-        action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied')),
+        action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied','recount','rename')),
         qty INTEGER NOT NULL,
         qty_after INTEGER NOT NULL,
         notes TEXT DEFAULT '',
@@ -170,6 +170,38 @@ function initDB() {
     `);
     db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(dropMigration);
     console.log('MIGRATION DONE: Fresh consumable tables created.');
+  }
+
+  // -- Widen the ledger action constraint for 'recount' and 'rename' entries --
+  // SQLite cannot alter a CHECK in place, so the table is rebuilt with every row copied over.
+  const ledgerActionsMigration = 'ledger_actions_recount_rename_v1';
+  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(ledgerActionsMigration)) {
+    console.log('MIGRATION: Rebuilding consumable_ledger to allow recount/rename actions...');
+    const before = db.prepare('SELECT COUNT(*) as c FROM consumable_ledger').get().c;
+    db.pragma('foreign_keys = OFF');
+    const rebuildLedger = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE consumable_ledger_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          box_id INTEGER NOT NULL REFERENCES consumable_boxes(id),
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          action TEXT NOT NULL CHECK(action IN ('withdraw','correction','return','box_added','box_emptied','recount','rename')),
+          qty INTEGER NOT NULL,
+          qty_after INTEGER NOT NULL,
+          notes TEXT DEFAULT '',
+          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        INSERT INTO consumable_ledger_new (id, box_id, user_id, action, qty, qty_after, notes, timestamp)
+          SELECT id, box_id, user_id, action, qty, qty_after, notes, timestamp FROM consumable_ledger;
+        DROP TABLE consumable_ledger;
+        ALTER TABLE consumable_ledger_new RENAME TO consumable_ledger;
+      `);
+    });
+    rebuildLedger();
+    db.pragma('foreign_keys = ON');
+    const after = db.prepare('SELECT COUNT(*) as c FROM consumable_ledger').get().c;
+    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(ledgerActionsMigration);
+    console.log(`MIGRATION DONE: consumable_ledger rebuilt, ${after} of ${before} entries preserved.`);
   }
 
   // ── Seed default consumable types if table is empty ──
@@ -186,6 +218,39 @@ function initDB() {
     const insertType = db.prepare('INSERT OR IGNORE INTO consumable_types (name, unit) VALUES (?, ?)');
     for (const t of defaultTypes) insertType.run(t.name, t.unit);
     console.log(`Seeded ${defaultTypes.length} default consumable types.`);
+  }
+
+  // -- Add expanded consumable item types (runs once, additive - never removes existing) --
+  const typesMigration = 'consumable_types_expanded_v1';
+  if (!db.prepare("SELECT key FROM _migrations WHERE key = ?").get(typesMigration)) {
+    const extraTypes = [
+      { name: 'Motility Plate', unit: 'pcs' },
+      { name: 'Petri Plate 60mm', unit: 'pcs' },
+      { name: 'Slant Tube', unit: 'pcs' },
+      { name: 'Micropipette Tip 10ul', unit: 'pcs' },
+      { name: 'Micropipette Tip 200ul', unit: 'pcs' },
+      { name: 'Micropipette Tip 1000ul', unit: 'pcs' },
+      { name: 'Microcentrifuge Tube 1.5ml', unit: 'pcs' },
+      { name: 'Microcentrifuge Tube 2ml', unit: 'pcs' },
+      { name: 'PCR Tube 0.2ml', unit: 'pcs' },
+      { name: 'Falcon Tube 15ml', unit: 'pcs' },
+      { name: 'Falcon Tube 50ml', unit: 'pcs' },
+      { name: 'Cryovial 2ml', unit: 'pcs' },
+      { name: 'Serological Pipette 10ml', unit: 'pcs' },
+      { name: 'Inoculation Loop', unit: 'pcs' },
+      { name: 'Glass Slide', unit: 'pcs' },
+      { name: 'Cover Slip', unit: 'pcs' },
+      { name: 'Nitrile Gloves', unit: 'pcs' },
+      { name: 'Syringe Filter 0.45um', unit: 'pcs' },
+      { name: 'Parafilm', unit: 'rolls' },
+      { name: 'Autoclave Bag', unit: 'pcs' },
+      { name: 'Isopropanol', unit: 'bottles' }
+    ];
+    const insertExtra = db.prepare('INSERT OR IGNORE INTO consumable_types (name, unit) VALUES (?, ?)');
+    const addExtras = db.transaction(() => { for (const t of extraTypes) insertExtra.run(t.name, t.unit); });
+    addExtras();
+    db.prepare("INSERT OR IGNORE INTO _migrations (key) VALUES (?)").run(typesMigration);
+    console.log('MIGRATION DONE: Added ' + extraTypes.length + ' consumable item types (existing ones untouched).');
   }
 
   // ── One-time: set individual permanent passwords from .env (runs once) ──

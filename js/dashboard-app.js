@@ -586,12 +586,27 @@
   // ══════════════════════════════════════
   // ── CONSUMABLES TRACKING PAGE
   // ══════════════════════════════════════
-  let consumableTypes = []; // loaded from DB
+  let consumableTypes = [];       // names, used by the "Add Box" modal
+  let consumableUnits = {};       // name -> unit
+  let consSearchTerm = '';
   const isBoxManager = user.role === 'pi' || user.email === 'argajit05@gmail.com';
+
+  // Stock below this level (summed across all non-empty boxes) gets a "running low" flag
+  const CONS_LOW_STOCK = 20;
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  // Safely embed a string as a JS argument inside an HTML onclick attribute
+  function jsArg(s) { return escHtml(JSON.stringify(String(s == null ? '' : s))); }
 
   async function loadConsumableTypes() {
     const types = await api('/consumables/types');
     consumableTypes = types.map(t => typeof t === 'string' ? t : t.name);
+    consumableUnits = {};
+    types.forEach(t => { if (typeof t !== 'string') consumableUnits[t.name] = t.unit || 'pcs'; });
     return consumableTypes;
   }
 
@@ -603,22 +618,40 @@
         <h1>Consumables Tracker</h1>
         <p>Batch management with append-only audit ledger</p>
       </div>
-      <div class="dash-toolbar" style="flex-wrap: wrap; gap: 12px;">
+      <div class="dash-toolbar">
+        <input type="search" class="dash-search" id="consSearch" placeholder="Search box label or item type...">
         <select class="dash-select" id="consTypeFilter" style="min-width: 180px;">
           <option value="all">All Item Types</option>
-          ${consumableTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
+          ${consumableTypes.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('')}
         </select>
         <button class="dash-btn-outline" id="consLedgerBtn">View Full Ledger</button>
+        <button class="dash-btn-outline" id="consArchiveBtn">Archive</button>
         ${isBoxManager ? '<button class="dash-btn-outline" id="consManageTypesBtn">Manage Types</button>' : ''}
         ${isBoxManager ? '<button class="dash-btn" id="consAddBoxBtn">+ Add New Box</button>' : ''}
       </div>
-      <div id="consSummary" style="margin-bottom: 24px;"></div>
+      <div id="consSummary"></div>
       <div id="consBoxes"></div>
     `;
 
-    const typeFilter = document.getElementById('consTypeFilter');
-    typeFilter.addEventListener('change', refreshConsumables);
+    consSearchTerm = '';
+    document.getElementById('consTypeFilter').addEventListener('change', refreshConsumables);
+    const searchEl = document.getElementById('consSearch');
+    let searchTimer;
+    searchEl.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { consSearchTerm = searchEl.value.trim().toLowerCase(); refreshConsumables(); }, 200);
+    });
     document.getElementById('consLedgerBtn').addEventListener('click', () => window.dashApp.showFullLedger());
+    document.getElementById('consArchiveBtn').addEventListener('click', () => window.dashApp.showArchive());
+    // Close any open overflow menu when clicking elsewhere on the page
+    if (!window.__consMenuCloser) {
+      window.__consMenuCloser = true;
+      document.addEventListener('click', (e) => {
+        document.querySelectorAll('details.cons-menu[open]').forEach(d => {
+          if (!d.contains(e.target)) d.removeAttribute('open');
+        });
+      });
+    }
     if (isBoxManager) {
       document.getElementById('consAddBoxBtn').addEventListener('click', () => window.dashApp.showAddBoxModal());
       document.getElementById('consManageTypesBtn').addEventListener('click', () => window.dashApp.showManageTypes());
@@ -632,70 +665,135 @@
       api(`/consumables?item_type=${encodeURIComponent(typeVal)}`),
       api('/consumables/summary')
     ]);
-    renderConsSummary(summary);
-    renderConsBoxes(boxes);
+
+    let visibleBoxes = boxes;
+    let visibleSummary = summary;
+    if (consSearchTerm) {
+      visibleBoxes = boxes.filter(b =>
+        b.box_label.toLowerCase().includes(consSearchTerm) ||
+        b.item_type.toLowerCase().includes(consSearchTerm));
+      const shownTypes = new Set(visibleBoxes.map(b => b.item_type));
+      visibleSummary = summary.filter(s => shownTypes.has(s.item_type));
+    } else if (typeVal !== 'all') {
+      visibleSummary = summary.filter(s => s.item_type === typeVal);
+    }
+
+    renderConsSummary(visibleSummary, visibleBoxes);
+    renderConsBoxes(visibleBoxes);
   }
 
-  function renderConsSummary(summary) {
+  // -- Top row: one stock tile per item type --
+  function renderConsSummary(summary, boxes) {
     const el = document.getElementById('consSummary');
     if (!summary.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-      ${summary.map(s => `
-        <div style="background: white; border: var(--border-light); padding: 16px; border-radius: 4px;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: 4px;">${s.item_type}</div>
-          <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-orange);">${s.total_qty}</div>
-          <div style="font-size: 0.75rem; color: var(--color-text-secondary);">${s.active_boxes} active box${s.active_boxes !== 1 ? 'es' : ''} &middot; ${s.empty_boxes} empty</div>
-        </div>
-      `).join('')}
+
+    // Which types currently have a box a scholar can actually withdraw from
+    const hasActive = {};
+    boxes.forEach(b => { if (b.status === 'active') hasActive[b.item_type] = true; });
+
+    el.innerHTML = `<div class="cons-stats">
+      ${summary.map(s => {
+        const unit = consumableUnits[s.item_type] || 'pcs';
+        const state = s.total_qty === 0 ? 'is-out' : s.total_qty <= CONS_LOW_STOCK ? 'is-low' : '';
+        const boxWord = `${s.active_boxes} active box${s.active_boxes !== 1 ? 'es' : ''}`;
+        let flag = '';
+        if (s.total_qty === 0) flag = 'Out of stock';
+        else if (s.total_qty <= CONS_LOW_STOCK) flag = 'Running low';
+        else if (!hasActive[s.item_type]) flag = 'No active box';
+        return `
+        <div class="cons-stat ${state}">
+          <div class="cons-stat-name">${escHtml(s.item_type)}</div>
+          <div class="cons-stat-value">${s.total_qty}<span>${escHtml(unit)}</span></div>
+          <div class="cons-stat-sub">${boxWord}${s.empty_boxes ? ` &middot; ${s.empty_boxes} used up` : ''}</div>
+          ${flag ? `<div class="cons-stat-sub cons-stat-flag">${flag}</div>` : ''}
+        </div>`;
+      }).join('')}
     </div>`;
   }
 
+  // -- One card per item type, boxes listed inside in FIFO order from the API --
   function renderConsBoxes(boxes) {
     const el = document.getElementById('consBoxes');
     if (!boxes.length) {
-      el.innerHTML = '<div style="padding: 40px; text-align: center; border: var(--border-light); background: white;"><p style="color: var(--color-text-secondary);">No boxes found. ' + (isBoxManager ? 'Click "+ Add New Box" to start.' : 'Ask Argajit or the PI to add boxes.') + '</p></div>';
+      el.innerHTML = `<div class="cons-blank"><p>${consSearchTerm
+        ? 'No boxes match your search.'
+        : 'No boxes yet. ' + (isBoxManager ? 'Click "+ Add New Box" to start.' : 'Ask Argajit or the PI to add boxes.')}</p></div>`;
       return;
     }
 
-    // Group by item type
     const grouped = {};
     boxes.forEach(b => { (grouped[b.item_type] = grouped[b.item_type] || []).push(b); });
 
-    el.innerHTML = Object.entries(grouped).map(([type, typeBoxes]) => `
-      <div style="margin-bottom: 32px;">
-        <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--color-warm-border);">${type}</h3>
-        <div class="dash-table-wrap"><table class="dash-table">
-          <thead><tr><th>Box Label</th><th>Status</th><th>Remaining</th><th>Progress</th><th>Added By</th><th>Date Added</th><th>Actions</th></tr></thead>
-          <tbody>${typeBoxes.map(b => {
-            const pct = b.initial_qty > 0 ? Math.round((b.current_qty / b.initial_qty) * 100) : 0;
-            const barColor = pct > 50 ? '#22c55e' : pct > 20 ? '#eab308' : '#ef4444';
-            const statusBadge = b.status === 'active' ? 'badge-available' : b.status === 'locked' ? 'badge-in-use' : 'badge-depleted';
-            const statusLabel = b.status === 'active' ? 'Active' : b.status === 'locked' ? 'Locked' : 'Empty';
-            return `<tr style="${b.status === 'active' ? 'background: rgba(34,197,94,0.04);' : b.status === 'empty' ? 'opacity: 0.5;' : ''}">
-              <td><strong>${b.box_label}</strong></td>
-              <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
-              <td><strong>${b.current_qty}</strong> / ${b.initial_qty}</td>
-              <td style="min-width: 120px;">
-                <div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
-                  <div style="background: ${barColor}; height: 100%; width: ${pct}%; transition: width 0.3s;"></div>
-                </div>
-                <span style="font-size: 0.7rem; color: var(--color-text-secondary);">${pct}%</span>
-              </td>
-              <td style="font-size: 0.8rem;">${b.added_by_name || '-'}</td>
-              <td style="font-size: 0.8rem;">${new Date(b.added_at).toLocaleDateString()}</td>
-              <td>
-                ${b.status === 'active' ? `<button class="dash-btn" style="padding: 6px 12px; font-size: 0.65rem;" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
-                ${b.status === 'active' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showCorrectionModal(${b.id})">Correction</button>` : ''}
-                ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; ${b.status === 'locked' ? 'color: #22c55e; border-color: rgba(34,197,94,0.4);' : 'color: #eab308; border-color: rgba(234,179,8,0.4);'}" onclick="window.dashApp.toggleBox(${b.id})">${b.status === 'locked' ? 'Activate' : 'Lock'}</button>` : ''}
-                <button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px;" onclick="window.dashApp.showBoxLedger(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Ledger</button>
-                ${isBoxManager && b.status !== 'empty' ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.markBoxEmpty(${b.id})">Mark Empty</button>` : ''}
-                ${isBoxManager ? `<button class="dash-btn-outline" style="padding: 6px 12px; font-size: 0.65rem; margin-top:2px; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteBox(${b.id}, '${b.box_label.replace(/'/g, "\\'")}')">Delete</button>` : ''}
-              </td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table></div>
-      </div>
-    `).join('');
+    el.innerHTML = Object.entries(grouped).map(([type, typeBoxes]) => {
+      const unit = consumableUnits[type] || 'pcs';
+      const live = typeBoxes.filter(b => b.status !== 'empty');
+      const used = typeBoxes.filter(b => b.status === 'empty');
+      const total = live.reduce((sum, b) => sum + b.current_qty, 0);
+      const activeCount = live.filter(b => b.status === 'active').length;
+      const lockedCount = live.filter(b => b.status === 'locked').length;
+
+      const metaBits = [`${activeCount} active`];
+      if (lockedCount) metaBits.push(`${lockedCount} locked`);
+
+      return `
+      <div class="cons-group">
+        <div class="cons-group-head">
+          <div class="cons-group-title">${escHtml(type)}</div>
+          <div class="cons-group-meta">
+            <span class="cons-group-total">${total} ${escHtml(unit)}</span> in stock &middot; ${metaBits.join(' &middot; ')}
+          </div>
+        </div>
+        ${live.length
+          ? live.map(b => renderConsBoxRow(b, unit)).join('')
+          : '<div class="cons-box" style="color: var(--color-text-secondary); font-size: 0.85rem;">No boxes in use. All boxes of this item are in the archive.</div>'}
+        ${used.length ? `
+          <div class="cons-archive-line">
+            <span>${used.length} box${used.length !== 1 ? 'es' : ''} used up</span>
+            <button class="cons-archive-link" onclick="window.dashApp.showArchive(${jsArg(type)})">View archive</button>
+          </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Only in-use boxes reach this - used-up ones are shown in the archive instead
+  function renderConsBoxRow(b, unit) {
+    const pct = b.initial_qty > 0 ? Math.round((b.current_qty / b.initial_qty) * 100) : 0;
+    const barColor = pct > 50 ? '#2BA850' : pct > 20 ? '#D19D2B' : '#DC2626';
+    const isActive = b.status === 'active';
+    const label = jsArg(b.box_label);
+
+    // Everything except the primary action lives in the overflow menu
+    const menuItems = [];
+    if (isActive) menuItems.push(`<button onclick="window.dashApp.showCorrectionModal(${b.id})">Correction entry</button>`);
+    menuItems.push(`<button onclick="window.dashApp.showRecountModal(${b.id})">Recount stock</button>`);
+    menuItems.push(`<button onclick="window.dashApp.showBoxLedger(${b.id}, ${label})">View ledger</button>`);
+    if (isBoxManager) {
+      menuItems.push('<hr>' +
+        `<button onclick="window.dashApp.showRenameBoxModal(${b.id}, ${label})">Rename box</button>` +
+        `<button onclick="window.dashApp.toggleBox(${b.id})">${isActive ? 'Lock box' : 'Activate box'}</button>` +
+        `<button class="danger" onclick="window.dashApp.markBoxEmpty(${b.id})">Mark as used up</button>` +
+        `<button class="danger" onclick="window.dashApp.deleteBox(${b.id}, ${label})">Delete box</button>`);
+    }
+
+    return `
+      <div class="cons-box ${isActive ? '' : 'is-locked'}">
+        <div>
+          <div class="cons-box-label">${escHtml(b.box_label)}</div>
+          <div class="cons-box-date">Added ${new Date(b.added_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+        </div>
+        <div class="cons-bar-wrap">
+          <div class="cons-bar"><div class="cons-bar-fill" style="background: ${barColor}; width: ${pct}%;"></div></div>
+          <div class="cons-bar-caption"><strong>${b.current_qty}</strong> of ${b.initial_qty} ${escHtml(unit)} left &middot; ${pct}%</div>
+        </div>
+        <span class="badge ${isActive ? 'badge-available' : 'badge-in-use'}">${isActive ? 'Active' : 'Locked'}</span>
+        <div class="cons-actions">
+          ${isActive ? `<button class="dash-btn cons-btn-sm" onclick="window.dashApp.showWithdrawModal(${b.id})">Withdraw</button>` : ''}
+          <details class="cons-menu">
+            <summary title="More actions">&#8942;</summary>
+            <div class="cons-menu-list">${menuItems.join('')}</div>
+          </details>
+        </div>
+      </div>`;
   }
 
   // ══════════════════════════════════════
@@ -1348,7 +1446,7 @@
         <div class="dash-form-group">
           <label class="dash-form-label">Item Type *</label>
           <select class="dash-input" id="newBoxType">
-            ${consumableTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
+            ${consumableTypes.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('')}
           </select>
         </div>
         <div class="dash-form-group">
@@ -1411,6 +1509,78 @@
       refreshConsumables();
     },
 
+    // Physical stock count. Whatever is missing against the recorded quantity is
+    // logged as untracked usage - items that left without a withdrawal entry.
+    async showRecountModal(boxId) {
+      const boxes = await api('/consumables?item_type=all');
+      const box = boxes.find(b => b.id === boxId);
+      if (!box) return alert('Box not found.');
+      const unit = consumableUnits[box.item_type] || 'pcs';
+
+      showModal(`Recount Stock - ${escHtml(box.box_label)}`, `
+        <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+          Count what is physically in the box and enter it below. Anything missing against the
+          recorded quantity is logged as <strong>used but not tracked</strong>.
+        </p>
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <div style="flex: 1; background: var(--color-warm-surface); padding: 12px 14px; border-radius: 4px;">
+            <div class="dash-form-label" style="margin-bottom: 4px;">Recorded now</div>
+            <div style="font-size: 1.3rem; font-weight: 700;">${box.current_qty} <span style="font-size: 0.8rem; font-weight: 500; color: var(--color-text-secondary);">${escHtml(unit)}</span></div>
+          </div>
+          <div style="flex: 1; background: var(--color-warm-surface); padding: 12px 14px; border-radius: 4px;">
+            <div class="dash-form-label" style="margin-bottom: 4px;">Box size</div>
+            <div style="font-size: 1.3rem; font-weight: 700;">${box.initial_qty} <span style="font-size: 0.8rem; font-weight: 500; color: var(--color-text-secondary);">${escHtml(unit)}</span></div>
+          </div>
+        </div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Actual Count *</label>
+          <input class="dash-input" id="recountQty" type="number" min="0" max="${box.initial_qty}" placeholder="How many are actually in the box?">
+        </div>
+        <div id="recountGap" style="font-size: 0.85rem; margin-bottom: 20px; min-height: 20px;"></div>
+        <div class="dash-form-group">
+          <label class="dash-form-label">Note (optional)</label>
+          <input class="dash-input" id="recountNotes" placeholder="e.g. Counted during monthly stock check">
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+         <button class="dash-btn" onclick="window.dashApp.submitRecount(${boxId})">Save Count</button>`);
+
+      // Live preview of the gap so the person counting sees the consequence before saving
+      const qtyInput = document.getElementById('recountQty');
+      const gapEl = document.getElementById('recountGap');
+      qtyInput.addEventListener('input', () => {
+        const counted = parseInt(qtyInput.value);
+        if (Number.isNaN(counted)) { gapEl.innerHTML = ''; return; }
+        const gap = box.current_qty - counted;
+        if (counted < 0 || counted > box.initial_qty) {
+          gapEl.innerHTML = `<span style="color: #DC2626;">Enter a number between 0 and ${box.initial_qty}.</span>`;
+        } else if (gap > 0) {
+          gapEl.innerHTML = `<span style="color: #DC2626; font-weight: 600;">${gap} ${escHtml(unit)} used but not tracked</span> will be recorded in the ledger.`;
+        } else if (gap < 0) {
+          gapEl.innerHTML = `<span style="color: #D19D2B; font-weight: 600;">${-gap} ${escHtml(unit)} more than recorded</span> - the count will be corrected upwards.`;
+        } else {
+          gapEl.innerHTML = `<span style="color: #2BA850; font-weight: 600;">Matches the recorded quantity.</span> The check is still logged.`;
+        }
+      });
+      qtyInput.focus();
+    },
+
+    async submitRecount(boxId) {
+      const raw = document.getElementById('recountQty').value;
+      if (raw === '') return alert('Enter the number of items you counted.');
+      const counted = parseInt(raw);
+      if (Number.isNaN(counted) || counted < 0) return alert('Enter a valid count.');
+
+      const result = await api(`/consumables/${boxId}/recount`, {
+        method: 'POST',
+        body: JSON.stringify({ counted_qty: counted, notes: document.getElementById('recountNotes').value })
+      });
+      if (result.error) return alert(result.error);
+
+      closeModal();
+      refreshConsumables();
+      if (result.untracked > 0) alert(`${result.message}\n\nRecorded as untracked usage in the ledger.`);
+    },
+
     showCorrectionModal(boxId) {
       showModal('Submit Correction', `
         <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
@@ -1443,20 +1613,111 @@
       refreshConsumables();
     },
 
+    // Rename a box. `archiveScope` is null when renaming from the main list;
+    // from the archive it carries the item type ('' for the lab-wide archive)
+    // so that view can be reopened afterwards.
+    showRenameBoxModal(boxId, currentLabel, archiveScope = null) {
+      showModal('Rename Box', `
+        <div class="dash-form-group">
+          <label class="dash-form-label">Box Label *</label>
+          <input class="dash-input" id="renameBoxLabel" maxlength="100" value="${escHtml(currentLabel)}">
+        </div>
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary);">
+          The rename is recorded in this box's ledger, so earlier entries stay traceable.
+        </p>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Cancel</button>
+          <button class="dash-btn" onclick="window.dashApp.renameBox(${boxId}, ${archiveScope === null ? 'null' : jsArg(archiveScope)})">Save</button>`);
+      const input = document.getElementById('renameBoxLabel');
+      input.focus();
+      input.select();
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.dashApp.renameBox(boxId, archiveScope);
+      });
+    },
+
+    async renameBox(boxId, archiveScope = null) {
+      const newLabel = document.getElementById('renameBoxLabel').value.trim();
+      if (!newLabel) return alert('Box label cannot be empty.');
+
+      const result = await api(`/consumables/${boxId}/label`, {
+        method: 'PATCH',
+        body: JSON.stringify({ box_label: newLabel })
+      });
+      if (result.error) return alert(result.error);
+
+      closeModal();
+      refreshConsumables();
+      if (archiveScope !== null) window.dashApp.showArchive(archiveScope || undefined);
+    },
+
+    // Used-up boxes are kept out of the main list - they live here.
+    // Pass an item type to scope the archive, or nothing for every item.
+    async showArchive(itemType) {
+      const all = await api(`/consumables?item_type=${encodeURIComponent(itemType || 'all')}`);
+      const used = all.filter(b => b.status === 'empty');
+      const scoped = !!itemType;
+
+      const totalUnits = used.reduce((sum, b) => sum + b.initial_qty, 0);
+      const unitLabel = scoped ? (consumableUnits[itemType] || 'pcs') : 'units';
+
+      showModal(scoped ? `Archive - ${escHtml(itemType)}` : 'Archive - All Used-Up Boxes', `
+        <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+          ${used.length} box${used.length !== 1 ? 'es' : ''} fully consumed
+          &middot; ${totalUnits} ${escHtml(unitLabel)} used in total.
+          Ledger history is kept for every archived box.
+        </p>
+        <div style="max-height: 420px; overflow-y: auto;">
+        ${used.length ? `<table class="dash-table" style="font-size: 0.85rem;">
+          <thead><tr>
+            <th>Box Label</th>${scoped ? '' : '<th>Item Type</th>'}
+            <th>Size</th><th>Added</th><th>Used Up</th><th></th>
+          </tr></thead>
+          <tbody>${used.map(b => `<tr>
+            <td><strong>${escHtml(b.box_label)}</strong></td>
+            ${scoped ? '' : `<td>${escHtml(b.item_type)}</td>`}
+            <td>${b.initial_qty} ${escHtml(consumableUnits[b.item_type] || 'pcs')}</td>
+            <td style="white-space: nowrap;">${new Date(b.added_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+            <td style="white-space: nowrap;">${b.emptied_at ? new Date(b.emptied_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
+            <td style="white-space: nowrap; text-align: right;">
+              <button class="dash-btn-outline cons-btn-sm" onclick="window.dashApp.showBoxLedger(${b.id}, ${jsArg(b.box_label)})">Ledger</button>
+              ${isBoxManager ? `<button class="dash-btn-outline cons-btn-sm" style="margin-left: 4px;" onclick="window.dashApp.showRenameBoxModal(${b.id}, ${jsArg(b.box_label)}, ${jsArg(itemType || '')})">Rename</button>` : ''}
+              ${isBoxManager ? `<button class="dash-btn-outline cons-btn-sm" style="color: #DC2626; border-color: rgba(220,38,38,0.3); margin-left: 4px;" onclick="window.dashApp.deleteBox(${b.id}, ${jsArg(b.box_label)}, true)">Delete</button>` : ''}
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<p style="color: var(--color-text-secondary);">Nothing archived yet.</p>'}
+        </div>
+      `, `<button class="dash-btn-outline" onclick="window.dashApp.closeModal()">Close</button>`);
+    },
+
     async showBoxLedger(boxId, boxLabel) {
       const logs = await api(`/consumables/${boxId}/ledger`);
-      const actionBadge = (a) => a === 'withdraw' ? 'badge-in-use' : a === 'return' ? 'badge-available' : a === 'correction' ? 'badge-depleted' : 'badge-active';
-      showModal(`Ledger - ${boxLabel}`, `
+      const actionBadge = (l) => {
+        if (l.action === 'withdraw') return 'badge-in-use';
+        if (l.action === 'return') return 'badge-available';
+        if (l.action === 'correction') return 'badge-depleted';
+        if (l.action === 'recount') return l.qty > 0 ? 'badge-depleted' : 'badge-active';
+        return 'badge-active';
+      };
+      // A recount that found a gap is untracked usage - the notes spell out the direction
+      const actionLabel = (l) => l.action === 'rename' ? 'renamed'
+        : l.action === 'recount' ? (l.qty > 0 ? 'untracked' : 'recount')
+        : l.action;
+      const qtyCell = (l) => {
+        if (l.action === 'rename' || l.qty === 0) return '-';
+        if (l.action === 'recount') return String(l.qty);
+        return (l.action === 'withdraw' || l.action === 'correction' ? '-' : '+') + l.qty;
+      };
+      showModal(`Ledger - ${escHtml(boxLabel)}`, `
         <div style="max-height: 400px; overflow-y: auto;">
         ${logs.length ? `<table class="dash-table" style="font-size: 0.85rem;">
           <thead><tr><th>Time</th><th>Action</th><th>Qty</th><th>After</th><th>By</th><th>Notes</th></tr></thead>
           <tbody>${logs.map(l => `<tr>
             <td style="font-size: 0.75rem; white-space: nowrap;">${new Date(l.timestamp).toLocaleString()}</td>
-            <td><span class="badge ${actionBadge(l.action)}">${l.action}</span></td>
-            <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
+            <td><span class="badge ${actionBadge(l)}">${actionLabel(l)}</span></td>
+            <td>${qtyCell(l)}</td>
             <td><strong>${l.qty_after}</strong></td>
-            <td style="font-size: 0.8rem;">${l.user_name}</td>
-            <td style="font-size: 0.8rem;">${l.notes || '-'}</td>
+            <td style="font-size: 0.8rem;">${escHtml(l.user_name)}</td>
+            <td style="font-size: 0.8rem;">${escHtml(l.notes) || "-"}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
         </div>
@@ -1466,7 +1727,22 @@
     async showFullLedger() {
       const typeVal = document.getElementById('consTypeFilter')?.value || 'all';
       const logs = await api(`/consumables/ledger/all?item_type=${encodeURIComponent(typeVal)}`);
-      const actionBadge = (a) => a === 'withdraw' ? 'badge-in-use' : a === 'return' ? 'badge-available' : a === 'correction' ? 'badge-depleted' : 'badge-active';
+      const actionBadge = (l) => {
+        if (l.action === 'withdraw') return 'badge-in-use';
+        if (l.action === 'return') return 'badge-available';
+        if (l.action === 'correction') return 'badge-depleted';
+        if (l.action === 'recount') return l.qty > 0 ? 'badge-depleted' : 'badge-active';
+        return 'badge-active';
+      };
+      // A recount that found a gap is untracked usage - the notes spell out the direction
+      const actionLabel = (l) => l.action === 'rename' ? 'renamed'
+        : l.action === 'recount' ? (l.qty > 0 ? 'untracked' : 'recount')
+        : l.action;
+      const qtyCell = (l) => {
+        if (l.action === 'rename' || l.qty === 0) return '-';
+        if (l.action === 'recount') return String(l.qty);
+        return (l.action === 'withdraw' || l.action === 'correction' ? '-' : '+') + l.qty;
+      };
       showModal('Full Consumables Ledger', `
         <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 12px;">Last 200 entries. All entries are permanent and cannot be edited or deleted.</p>
         <div style="max-height: 450px; overflow-y: auto;">
@@ -1474,13 +1750,13 @@
           <thead><tr><th>Time</th><th>Item</th><th>Box</th><th>Action</th><th>Qty</th><th>After</th><th>By</th><th>Notes</th></tr></thead>
           <tbody>${logs.map(l => `<tr>
             <td style="font-size: 0.7rem; white-space: nowrap;">${new Date(l.timestamp).toLocaleString()}</td>
-            <td style="font-size: 0.75rem;">${l.item_type || ''}</td>
-            <td style="font-size: 0.75rem;">${l.box_label || ''}</td>
-            <td><span class="badge ${actionBadge(l.action)}">${l.action}</span></td>
-            <td>${l.action === 'withdraw' || l.action === 'correction' ? '-' : '+'}${l.qty}</td>
+            <td style="font-size: 0.75rem;">${escHtml(l.item_type)}</td>
+            <td style="font-size: 0.75rem;">${escHtml(l.box_label)}</td>
+            <td><span class="badge ${actionBadge(l)}">${actionLabel(l)}</span></td>
+            <td>${qtyCell(l)}</td>
             <td><strong>${l.qty_after}</strong></td>
-            <td style="font-size: 0.75rem;">${l.user_name}</td>
-            <td style="font-size: 0.75rem;">${l.notes || '-'}</td>
+            <td style="font-size: 0.75rem;">${escHtml(l.user_name)}</td>
+            <td style="font-size: 0.75rem;">${escHtml(l.notes) || "-"}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<p style="color: var(--color-text-secondary);">No entries yet.</p>'}
         </div>
@@ -1494,11 +1770,13 @@
       refreshConsumables();
     },
 
-    async deleteBox(boxId, boxLabel) {
+    async deleteBox(boxId, boxLabel, fromArchive) {
       if (!confirm(`Permanently delete box "${boxLabel}" and ALL its ledger entries?\n\nThis action cannot be undone.`)) return;
       const result = await api(`/consumables/${boxId}`, { method: 'DELETE' });
       if (result.error) return alert('Delete failed: ' + result.error);
       refreshConsumables();
+      // Deleted from inside the archive modal - close it so the list can't go stale
+      if (fromArchive) closeModal();
     },
 
     async toggleBox(boxId) {
@@ -1518,14 +1796,14 @@
           <input class="dash-input" id="newTypeUnit" placeholder="Unit (pcs)" style="width: 80px;">
           <button class="dash-btn" onclick="window.dashApp.addItemType()">Add</button>
         </div>
-        <div id="typesList">
+        <div id="typesList" style="max-height: 50vh; overflow-y: auto; border: var(--border-light); border-radius: 4px;">
           ${types.map(t => `
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--color-warm-border, #e5e1dc);">
               <div>
-                <strong>${t.name}</strong>
-                <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-left: 8px;">(${t.unit || 'pcs'})</span>
+                <strong>${escHtml(t.name)}</strong>
+                <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-left: 8px;">(${escHtml(t.unit || 'pcs')})</span>
               </div>
-              <button class="dash-btn-outline" style="padding: 4px 10px; font-size: 0.7rem; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteItemType(${t.id}, '${t.name.replace(/'/g, "\\'")}')">Remove</button>
+              <button class="dash-btn-outline" style="padding: 4px 10px; font-size: 0.7rem; color: #dc2626; border-color: rgba(220,38,38,0.3);" onclick="window.dashApp.deleteItemType(${t.id}, ${jsArg(t.name)})">Remove</button>
             </div>
           `).join('')}
         </div>
